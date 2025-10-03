@@ -23,6 +23,7 @@ const DriverDashboard: React.FC = () => {
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
   const [showDutyDialog, setShowDutyDialog] = useState<boolean>(false);
   const [pendingDutyStatus, setPendingDutyStatus] = useState<DutyStatusData | null>(null);
+  const [existingEntryId, setExistingEntryId] = useState<number | null>(null);
   const [showTimeEditDialog, setShowTimeEditDialog] = useState<boolean>(false);
   const [editedTime, setEditedTime] = useState<string>(new Date().toTimeString().substring(0, 5));
   
@@ -97,16 +98,38 @@ const DriverDashboard: React.FC = () => {
   }, [dutyStatus, startTracking, stopTracking]);
   
   // Handle duty status change
-  const handleDutyStatusChange = useCallback((status: DutyStatus) => {
-    setPendingDutyStatus({
-      status,
-      startTime: new Date().toISOString(),
-    });
-    setShowDutyDialog(true);
+  const handleDutyStatusChange = useCallback(async (status: DutyStatus) => {
+    setLoading(true);
+
+    try {
+      // Get today's log entries to find existing entry to edit
+      const todaysEntries = await logService.getLogEntries();
+      const today = new Date().toISOString().split('T')[0];
+      const existingEntry = todaysEntries
+        .filter(entry => entry.date === today)
+        .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())[0];
+
+      setPendingDutyStatus({
+        status,
+        startTime: new Date().toISOString(),
+      });
+      setExistingEntryId(existingEntry ? existingEntry.id : null);
+
+      setShowDutyDialog(true);
+    } catch (error) {
+      console.error('Error loading existing entries:', error);
+      addToast({
+        title: 'Error',
+        description: 'Failed to load existing log entries',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   }, []);
   
   // Confirm duty status change
-  const confirmDutyStatusChange = useCallback(async (formData: DutyStatusFormData) => {
+  const confirmDutyStatusChange = useCallback(async (formData: DutyStatusFormData, passedExistingEntryId?: number) => {
     if (!pendingDutyStatus) return;
 
     try {
@@ -115,9 +138,10 @@ const DriverDashboard: React.FC = () => {
       // Convert LocationData to string format for API
       const locationString = formData.location ? formData.location.address : '';
 
-      // Create new log entry instead of updating non-existent entry
-      await logService.createLogEntry({
-        ...pendingDutyStatus,
+      // Prepare the data for API submission
+      const submissionData = {
+        driver: user?.id, // Add the current user's ID
+        duty_status: pendingDutyStatus.status, // Use duty_status instead of status
         location: locationString,
         latitude: formData.location?.lat,
         longitude: formData.location?.lng,
@@ -126,7 +150,15 @@ const DriverDashboard: React.FC = () => {
         trailer_info: formData.trailerInfo,
         odometer_start: formData.odometerStart ? parseFloat(formData.odometerStart) : undefined,
         odometer_end: formData.odometerEnd ? parseFloat(formData.odometerEnd) : undefined,
-      });
+        start_time: new Date().toTimeString().substring(0, 8), // Add current time as start_time
+      };
+
+      // If editing existing entry, use update; otherwise create new
+      if (passedExistingEntryId) {
+        await logService.updateLogEntry(passedExistingEntryId, submissionData);
+      } else {
+        await logService.createLogEntry(submissionData);
+      }
 
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
@@ -245,7 +277,7 @@ const DriverDashboard: React.FC = () => {
                 setEditedTime(timeOnly);
                 setShowTimeEditDialog(true);
               }}
-              className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 py-1 rounded transition-all duration-200"
             >
               Edit Time
             </button>
@@ -283,7 +315,8 @@ const DriverDashboard: React.FC = () => {
           onSubmit={confirmDutyStatusChange}
           status={pendingDutyStatus.status}
           loading={loading}
-          currentLocation={currentLocation || undefined}
+          currentLocation={currentLocation ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : undefined}
+          existingEntryId={existingEntryId || undefined}
         />
       )}
       

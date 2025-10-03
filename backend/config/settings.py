@@ -211,6 +211,27 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSIONING_CLASS': None,
 }
 
+# JWT Settings - Extended for development convenience
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),  # Increased from 5 minutes to 1 hour
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
+
 # Security settings for production (disabled in development for CORS compatibility)
 # SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True

@@ -225,7 +225,7 @@ def resolve_violation(request, pk):
         )
 
     violation.is_resolved = True
-    violation.resolved_at = timezone.now()
+    violation.resolved_at = django_timezone.now()
     violation.resolution_notes = request.data.get('notes', '')
     violation.save()
 
@@ -483,7 +483,7 @@ def create_eld_grid(log_entries, daily_log):
 
     # Color mapping for duty statuses
     status_colors = {
-        'off_duty': colors.lightgray,
+        'off_duty': colors.lightgrey,
         'sleeper_berth': colors.lightblue,
         'driving': colors.lightgreen,
         'on_duty_not_driving': colors.lightyellow,
@@ -498,21 +498,21 @@ def create_eld_grid(log_entries, daily_log):
         # Create visual bar for each hour
         for hour in range(24):
             # Check if this status was active during this hour
-            hour_start = timezone.datetime.combine(daily_log.date, timezone.datetime.min.time()) + timezone.timedelta(hours=hour)
-            hour_end = hour_start + timezone.timedelta(hours=1)
+            hour_start = django_timezone.datetime.combine(daily_log.date, django_timezone.datetime.min.time()) + django_timezone.timedelta(hours=hour)
+            hour_end = hour_start + django_timezone.timedelta(hours=1)
 
             # Find if any log entry overlaps with this hour
             status_active = False
             for entry in log_entries:
                 if entry.duty_status == status and entry.start_time:
-                    entry_start = timezone.datetime.combine(daily_log.date, entry.start_time)
+                    entry_start = django_timezone.datetime.combine(daily_log.date, entry.start_time)
 
                     # Calculate entry end time
                     if entry.end_time:
-                        entry_end = timezone.datetime.combine(daily_log.date, entry.end_time)
+                        entry_end = django_timezone.datetime.combine(daily_log.date, entry.end_time)
                     else:
                         # If no end time, assume it runs to the end of the calculated duration
-                        entry_end = entry_start + timezone.timedelta(hours=float(entry.total_hours or 0))
+                        entry_end = entry_start + django_timezone.timedelta(hours=float(entry.total_hours or 0))
 
                     # Check if entry overlaps with this hour (partial overlap counts)
                     if (entry_start < hour_end) and (entry_end > hour_start):
@@ -528,7 +528,7 @@ def create_eld_grid(log_entries, daily_log):
         grid_data.append(row)
 
     # Create the visual grid table
-    grid_table = Table(grid_data, colWidths=[1.5*inch] + [0.3*inch]*24)
+    grid_table = Table(grid_data, colWidths=[1.0*inch] + [0.42*inch]*24)
 
     grid_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkgray),
