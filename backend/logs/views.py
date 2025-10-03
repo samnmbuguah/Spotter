@@ -2,7 +2,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -230,6 +230,80 @@ def resolve_violation(request, pk):
 
     serializer = ViolationSerializer(violation)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_current_trip(request):
+    """Get current trip for the authenticated driver"""
+    today = date.today()
+
+    # Get today's most recent driving log entry
+    current_trip_entry = LogEntry.objects.filter(
+        driver=request.user,
+        date=today,
+        duty_status='driving'
+    ).order_by('-start_time').first()
+
+    if current_trip_entry:
+        return Response({
+            'id': current_trip_entry.id,
+            'name': f"Trip - {current_trip_entry.location or 'Driving'}",
+            'status': 'active',
+            'start_time': current_trip_entry.start_time.strftime('%H:%M:%S') if current_trip_entry.start_time else None,
+            'location': current_trip_entry.location,
+            'vehicle_info': current_trip_entry.vehicle_info,
+            'odometer_start': current_trip_entry.odometer_start,
+            'total_hours': current_trip_entry.total_hours,
+        })
+
+    return Response(None)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def update_duty_status_time(request):
+    """Update the start time of the current duty status"""
+    status = request.data.get('status')
+    new_time = request.data.get('time')
+
+    if not status or not new_time:
+        return Response(
+            {'error': 'Status and time are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    today = date.today()
+
+    # Find the most recent log entry with the given status
+    log_entry = LogEntry.objects.filter(
+        driver=request.user,
+        date=today,
+        duty_status=status
+    ).order_by('-start_time').first()
+
+    if not log_entry:
+        return Response(
+            {'error': f'No {status} entry found for today'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Update the start time
+    try:
+        from datetime import datetime
+        time_obj = datetime.strptime(new_time, '%H:%M:%S').time()
+        log_entry.start_time = time_obj
+        log_entry.save()
+
+        return Response({
+            'message': 'Duty status time updated successfully',
+            'entry': LogEntrySerializer(log_entry).data
+        })
+    except ValueError:
+        return Response(
+            {'error': 'Invalid time format. Use HH:MM:SS'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 @api_view(['GET'])

@@ -167,8 +167,11 @@ export const logService = {
     return response.data;
   },
 
-  async getCurrentHOSStatus() {
-    const response = await api.get('/logs/status/');
+  async updateDutyStatusTime(status: string, newTime: string) {
+    const response = await api.post('/logs/update-duty-time/', {
+      status,
+      time: newTime,
+    });
     return response.data;
   },
 
