@@ -79,6 +79,7 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
               label="Location"
               required
               showCoordinates={true}
+              disableForm={true}
             />
           </div>
 
