@@ -4,16 +4,20 @@ from .models import LogEntry, DailyLog, Violation
 
 class LogEntrySerializer(serializers.ModelSerializer):
     """Serializer for LogEntry model"""
+    current_duration = serializers.SerializerMethodField()
 
     class Meta:
         model = LogEntry
         fields = [
             'id', 'driver', 'date', 'start_time', 'end_time', 'duty_status',
-            'location', 'notes', 'latitude', 'longitude', 'total_hours',
+            'location', 'notes', 'latitude', 'longitude', 'total_hours', 'current_duration',
             'vehicle_info', 'trailer_info', 'odometer_start', 'odometer_end',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'total_hours', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'total_hours', 'current_duration', 'created_at', 'updated_at']
+
+    def get_current_duration(self, obj):
+        return obj.get_current_duration()
 
     def create(self, validated_data):
         # Set the driver from the request context
