@@ -30,9 +30,9 @@ if not settings.configured:
             'corsheaders',
             'rest_framework_simplejwt',
             'rest_framework_simplejwt.token_blacklist',
-            'core.apps.CoreConfig',
-            'logs.apps.LogsConfig',
-            'trips.apps.TripsConfig',
+            'core',
+            'logs',
+            'trips',
         ],
         MIDDLEWARE=[
             'corsheaders.middleware.CorsMiddleware',
