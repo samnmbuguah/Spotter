@@ -130,23 +130,33 @@ const LogBook: React.FC = () => {
       // Also export to PDF after successful generation
       const todaysDailyLogAfterGeneration = getTodaysDailyLog();
       if (todaysDailyLogAfterGeneration) {
-        // Call the backend API to generate proper PDF
-        const pdfBlob = await logService.downloadDailyLogPDF(selectedDate);
+        try {
+          // Call the backend API to generate proper PDF
+          console.log('Starting PDF download for date:', selectedDate);
+          const pdfBlob = await logService.downloadDailyLogPDF(selectedDate);
+          console.log('PDF blob received:', pdfBlob);
 
-        // Create download link
-        const url = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `hos-log-${selectedDate}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+          // Create download link
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `hos-log-${selectedDate}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
 
-        addToast({
-          title: 'Daily Log Generated & Downloaded',
-          description: 'Your daily log has been generated and PDF has been downloaded successfully.',
-        });
+          addToast({
+            title: 'Daily Log Generated & Downloaded',
+            description: 'Your daily log has been generated and PDF has been downloaded successfully.',
+          });
+        } catch (pdfError) {
+          console.error('Error downloading PDF:', pdfError);
+          addToast({
+            title: 'Daily Log Generated',
+            description: 'Your daily log has been generated successfully, but PDF download failed. You can export it manually using the Export PDF button.',
+          });
+        }
       } else {
         addToast({
           title: 'Daily Log Generated',
