@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -8,6 +9,11 @@ from rest_framework_simplejwt.views import (
 from . import views
 
 app_name = 'core'
+
+# Create a router for our API endpoints
+router = DefaultRouter()
+router.register(r'documents', views.DocumentViewSet, basename='document')
+router.register(r'duty-status', views.DutyStatusLogViewSet, basename='dutystatus')
 
 urlpatterns = [
     # User management
@@ -25,4 +31,13 @@ urlpatterns = [
     
     # Auth Check
     path('check-auth/', views.CheckAuthView.as_view(), name='check-auth'),
+    
+    # Health Check
+    path('health/', views.health_check, name='health-check'),
+    
+    # API endpoints
+    path('api/', include(router.urls)),
+    
+    # Current duty status (convenience endpoint)
+    path('api/current-status/', views.DutyStatusLogViewSet.as_view({'get': 'current_status'}), name='current-status'),
 ]

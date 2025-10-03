@@ -43,9 +43,20 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(models.DriverProfile)
 class DriverProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'license_number', 'company')
-    search_fields = ('user__email', 'user__name', 'license_number')
-    list_filter = ('company',)
+    list_display = ('user', 'license_number', 'license_expiry', 'current_vehicle')
+    search_fields = ('user__email', 'user__name', 'license_number', 'current_vehicle', 'current_trailer')
+    list_filter = ('default_cycle', 'auto_close_trip_at_midnight')
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'license_number', 'license_expiry', 'medical_card_expiry')
+        }),
+        ('Vehicle Information', {
+            'fields': ('current_vehicle', 'current_trailer')
+        }),
+        ('Trip Settings', {
+            'fields': ('default_cycle', 'auto_close_trip_at_midnight', 'auto_close_trip_time')
+        }),
+    )
 
 
 admin.site.register(models.User, UserAdmin)

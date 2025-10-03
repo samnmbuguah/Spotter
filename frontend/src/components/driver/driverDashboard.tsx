@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { tripService } from '../../services/api';
 import { logService } from '../../services/api';
 import { useToast } from '../../components/ui/use-toast';
 import { useLocationTracking } from '../../hooks/useLocationTracking';
@@ -33,7 +34,7 @@ const DriverDashboard: React.FC = () => {
     
     try {
       setLoading(true);
-      const status = await logService.getCurrentHOSStatus();
+      const status = await logService.getDailyLogs(); // Using getDailyLogs instead of getCurrentHOSStatus
       if (status) {
         setDutyStatus(prev => ({
           ...prev,
@@ -58,7 +59,7 @@ const DriverDashboard: React.FC = () => {
     
     try {
       setLoading(true);
-      const trip = await logService.getCurrentTrip();
+      const trip = await tripService.getCurrentTrip();
       setCurrentTrip(trip || null);
     } catch (error) {
       console.error('Error loading current trip:', error);
