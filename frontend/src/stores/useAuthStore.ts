@@ -12,8 +12,8 @@ interface ExtendedUser extends User {
   preferences?: UserPreferences;
 }
 
-// API base URL - should match the environment variable
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001/api/v1';
+// API base URL - using relative URL for Vercel deployment
+const API_BASE_URL = '/api/v1';
 
 interface AuthState {
   user: ExtendedUser | null;
