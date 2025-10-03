@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Truck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../components/ui/button';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useToast } from '../components/ui/use-toast';
 
@@ -13,7 +13,8 @@ interface LoginFormData {
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated } = useAuthStore();
+  const { isAuthenticated, login } = useAuthStore();
+  const { addToast } = useToast();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -29,9 +30,17 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate, location]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.email || !formData.password) {
       addToast({
         title: 'Validation Error',
@@ -40,7 +49,7 @@ const Login: React.FC = () => {
       });
       return;
     }
-    
+
     try {
       setLoading(true);
       await login(formData.email, formData.password, rememberMe);
@@ -51,7 +60,24 @@ const Login: React.FC = () => {
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch (error: any) {
-      const errorMessage = error?.message || 'Login failed. Please check your credentials.';
+      // Extract error message from API response
+      let errorMessage = 'Login failed. Please check your credentials.';
+
+      if (error?.response?.data) {
+        const data = error.response.data;
+        if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.email?.[0]) {
+          errorMessage = data.email[0];
+        } else if (data.password?.[0]) {
+          errorMessage = data.password[0];
+        } else if (data.non_field_errors?.[0]) {
+          errorMessage = data.non_field_errors[0];
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       addToast({
         title: 'Login Failed',
         description: errorMessage,
@@ -153,7 +179,6 @@ const Login: React.FC = () => {
 
           <div>
             <Button
-            <button
               type="submit"
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors"
@@ -166,7 +191,7 @@ const Login: React.FC = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

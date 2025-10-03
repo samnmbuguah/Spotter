@@ -54,9 +54,31 @@ const Register: React.FC = () => {
       });
       navigate('/login');
     } catch (err: any) {
+      // Extract error message from API response
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (err?.response?.data) {
+        const data = err.response.data;
+        if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.email?.[0]) {
+          errorMessage = data.email[0];
+        } else if (data.password?.[0]) {
+          errorMessage = data.password[0];
+        } else if (data.name?.[0]) {
+          errorMessage = data.name[0];
+        } else if (data.non_field_errors?.[0]) {
+          errorMessage = data.non_field_errors[0];
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
       addToast({
         title: 'Registration Failed',
-        description: err.response?.data?.detail || err.response?.data?.email?.[0] || 'Registration failed. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
