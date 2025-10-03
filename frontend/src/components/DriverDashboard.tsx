@@ -4,6 +4,10 @@ import { tripService, logService } from '../services/api';
 import { useLocationTracking } from '../hooks/useLocationTracking';
 import { useAuthStore } from '../stores/useAuthStore';
 import { MapPin, Play, CheckCircle, AlertCircle, FileText, Navigation, Download } from 'lucide-react';
+
+// Types and Interfaces
+type DutyStatus = 'off_duty' | 'sleeper_berth' | 'driving' | 'on_duty_not_driving';
+
 interface LocationData {
   address: string;
   lat: number;
@@ -23,7 +27,7 @@ interface Trip {
 }
 
 interface DutyStatusData {
-  status: 'off_duty' | 'sleeper_berth' | 'driving' | 'on_duty_not_driving';
+  status: DutyStatus;
   startTime: string;
   location?: string;
   endTime?: string;
@@ -32,20 +36,33 @@ interface DutyStatusData {
   trailerInfo?: string;
   odometerStart?: number;
   odometerEnd?: number;
-  duration?: number; // For editing previous duration
+  duration?: number;
+}
+
+interface DutyStatusFormData {
+  location: string;
+  notes: string;
+  vehicleInfo: string;
+  trailerInfo: string;
+  odometerStart: string;
+  odometerEnd: string;
 }
 
 const DUTY_STATUS_OPTIONS = [
-  { value: 'off_duty', label: 'Off Duty', color: 'bg-gray-500' },
-  { value: 'sleeper_berth', label: 'Sleeper Berth', color: 'bg-blue-500' },
-  { value: 'driving', label: 'Driving', color: 'bg-green-500' },
-  { value: 'on_duty_not_driving', label: 'On Duty (Not Driving)', color: 'bg-yellow-500' },
+  { value: 'off_duty' as const, label: 'Off Duty', color: 'bg-gray-500' },
+  { value: 'sleeper_berth' as const, label: 'Sleeper Berth', color: 'bg-blue-500' },
+  { value: 'driving' as const, label: 'Driving', color: 'bg-green-500' },
+  { value: 'on_duty_not_driving' as const, label: 'On Duty (Not Driving)', color: 'bg-yellow-500' },
 ] as const;
 
 const DriverDashboard: React.FC = () => {
-  const { addToast } = useToast();
-  const { currentLocation, isTracking, startTracking, stopTracking, error } = useLocationTracking();
+  // Hooks
+  const { toast } = useToast();
   const { user } = useAuthStore();
+  const { currentLocation, startTracking, stopTracking } = useLocationTracking();
+  
+  // State
+  const [loading, setLoading] = useState<boolean>(false);
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
   const [dutyStatus, setDutyStatus] = useState<DutyStatusData>(() => {
     // Initialize with user's reset time preference
@@ -55,17 +72,18 @@ const DriverDashboard: React.FC = () => {
 
     return {
       status: 'off_duty',
-      startTime: startTime,
+      startTime,
+      location: '',
     };
   });
-  const [loading, setLoading] = useState(false);
-  const [showDutyDialog, setShowDutyDialog] = useState(false);
+  
+  const [showDutyDialog, setShowDutyDialog] = useState<boolean>(false);
   const [pendingDutyStatus, setPendingDutyStatus] = useState<DutyStatusData | null>(null);
-  const [showTimeEditDialog, setShowTimeEditDialog] = useState(false);
-  const [editedTime, setEditedTime] = useState('');
-  const [showDurationEditDialog, setShowDurationEditDialog] = useState(false);
-  const [editedDuration, setEditedDuration] = useState('');
-  const [formData, setFormData] = useState({
+  const [showTimeEditDialog, setShowTimeEditDialog] = useState<boolean>(false);
+  const [editedTime, setEditedTime] = useState<string>('');
+  const [showDurationEditDialog, setShowDurationEditDialog] = useState<boolean>(false);
+  const [editedDuration, setEditedDuration] = useState<number>(0);
+  const [formData, setFormData] = useState<DutyStatusFormData>({
     location: '',
     notes: '',
     vehicleInfo: '',
@@ -74,99 +92,33 @@ const DriverDashboard: React.FC = () => {
     odometerEnd: '',
   });
 
-  const formatTimeForAPI = (date: Date) => {
+  // Toast helper function
+  const addToast = useCallback(({ title, description, variant = 'default' }: { 
+    title: string; 
+    description: string; 
+    variant?: 'default' | 'destructive' 
+  }) => {
+    toast({
+      title,
+      description,
+      variant,
+    });
+  }, [toast]);
+
+  // Utility Functions
+  const formatTimeForAPI = (date: Date): string => {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const seconds = date.getSeconds().toString().padStart(2, '0');
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  useEffect(() => {
-    loadCurrentTrip();
-    loadCurrentDutyStatus();
-
-    // Start location tracking when component mounts
-    startTracking();
-
-    // Set up interval to update location in log entries
-    const interval = setInterval(() => {
-      if (currentLocation && dutyStatus.status !== 'off_duty') {
-        updateLocationInLog(currentLocation);
-      }
-    }, 60000); // Update every minute
-
-    return () => {
-      clearInterval(interval);
-      stopTracking();
-    };
-  }, [loadCurrentTrip, loadCurrentDutyStatus, startTracking, stopTracking, currentLocation, dutyStatus.status, updateLocationInLog]);
-
-  const loadCurrentTrip = useCallback(async () => {
+  // API Call Handlers
+  const updateLocationInLog = useCallback(async (location: { latitude: number; longitude: number }) => {
+    if (!dutyStatus.status) return;
     try {
-      // Get current trip from backend (automatically created if needed)
-      const trip = await tripService.getCurrentTrip();
-      setCurrentTrip(trip);
-    } catch (error) {
-      console.error('Error loading current trip:', error);
-      // If no current trip exists, the backend will create one automatically
-      // when the driver starts duty status changes
-    }
-  }, []);
-
-  const loadCurrentDutyStatus = useCallback(async () => {
-    try {
-      const status = await logService.getCurrentHOSStatus();
-      if (status) {
-        // Construct a full datetime from the time string and today's date
-        let startTime = new Date().toISOString(); // Default to now
-        if (status.start_time) {
-          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-          startTime = `${today}T${status.start_time}`;
-        } else {
-          // If no start time from backend, use user's reset time preference
-          const resetTime = user?.preferences?.dutyStatusResetTime || '06:00';
-          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-          startTime = `${today}T${resetTime}:00`;
-        }
-
-        setDutyStatus({
-          status: status.current_status,
-          startTime: startTime,
-          location: status.location,
-        });
-      } else {
-        // No current status from backend - use user's reset time preference
-        const resetTime = user?.preferences?.dutyStatusResetTime || '06:00';
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const startTime = `${today}T${resetTime}:00`;
-
-        setDutyStatus({
-          status: 'off_duty',
-          startTime: startTime,
-          location: '',
-        });
-      }
-    } catch (error) {
-      console.error('Error loading duty status:', error);
-
-      // On error, also use user's reset time preference
-      const resetTime = user?.preferences?.dutyStatusResetTime || '06:00';
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const startTime = `${today}T${resetTime}:00`;
-
-      setDutyStatus({
-        status: 'off_duty',
-        startTime: startTime,
-        location: '',
-      });
-    }
-  }, [user?.preferences?.dutyStatusResetTime]);
-
-  const updateLocationInLog = useCallback(async (location: any) => {
-    try {
-      // Update the current log entry with location data
       const logEntries = await logService.getLogEntries();
-      const currentEntry = logEntries.find((entry: any) =>
+      const currentEntry = logEntries.find((entry: any) => 
         !entry.end_time && entry.duty_status === dutyStatus.status
       );
 
@@ -178,10 +130,159 @@ const DriverDashboard: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating location in log:', error);
+      addToast({
+        title: 'Location Update Failed',
+        description: 'Could not update your current location in the log.',
+        variant: 'destructive',
+      });
     }
-  }, [dutyStatus.status]);
+  }, [dutyStatus.status, addToast]);
 
-  const handleDutyStatusChange = (newStatus: DutyStatusData['status']) => {
+  const loadCurrentDutyStatus = useCallback(async () => {
+    if (!user) return;
+    try {
+      const status = await logService.getCurrentHOSStatus();
+      if (status) {
+        // Construct a full datetime from the time string and today's date
+        let startTime = new Date().toISOString(); // Default to now
+        if (status.start_time) {
+          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+          startTime = `${today}T${status.start_time}`;
+        } else {
+          // If no start time from backend, use user's reset time preference
+          const resetTime = user?.preferences?.dutyStatusResetTime || '06:00';
+          const today = new Date().toISOString().split('T')[0];
+          startTime = `${today}T${resetTime}:00`;
+        }
+
+        setDutyStatus(prev => ({
+          ...prev,
+          status: status.current_status,
+          startTime: startTime,
+          location: status.location || prev.location,
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading duty status:', error);
+      addToast({
+        title: 'Error Loading Status',
+        description: 'Failed to load your current duty status.',
+        variant: 'destructive',
+      });
+    }
+  }, [user?.preferences?.dutyStatusResetTime, addToast]);
+
+  const loadCurrentTrip = useCallback(async () => {
+    if (!user) return;
+    try {
+      const trip = await tripService.getCurrentTrip();
+      setCurrentTrip(trip);
+    } catch (error) {
+      console.error('Error loading current trip:', error);
+      addToast({
+        title: 'Error Loading Trip',
+        description: 'Failed to load your current trip information.',
+        variant: 'destructive',
+      });
+    }
+  }, [addToast]);
+
+  // Handle duty status changes
+  const handleDutyStatusChange = useCallback((newStatus: DutyStatus) => {
+    try {
+      setLoading(true);
+      
+      // Update the current log entry with location data
+      if (currentLocation) {
+        updateLocationInLog(currentLocation);
+      }
+      
+      // Show confirmation dialog
+      setPendingDutyStatus({
+        ...dutyStatus,
+        status: newStatus,
+        startTime: new Date().toISOString(),
+      });
+      
+      setShowDutyDialog(true);
+    } catch (error) {
+      console.error('Error updating duty status:', error);
+      addToast({
+        title: 'Status Update Failed',
+        description: 'Failed to update your duty status.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentLocation, dutyStatus, updateLocationInLog, addToast]);
+
+  // Effects
+  useEffect(() => {
+    // Load initial data
+    const initialize = async () => {
+      await Promise.all([
+        loadCurrentTrip(),
+        loadCurrentDutyStatus()
+      ]);
+      
+      // Start location tracking
+      startTracking();
+    };
+
+    initialize();
+
+    // Set up interval to update location in log entries
+    const interval = setInterval(() => {
+      if (currentLocation && dutyStatus.status !== 'off_duty') {
+        updateLocationInLog(currentLocation);
+      }
+    }, 60000); // Update every minute
+
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+      stopTracking();
+    };
+  }, [
+    currentLocation, 
+    dutyStatus.status, 
+    loadCurrentDutyStatus, 
+    loadCurrentTrip, 
+    startTracking, 
+    stopTracking, 
+    updateLocationInLog
+  ]);
+
+  // Event Handlers
+  const handleDutyStatusChange = async (newStatus: DutyStatusData['status']) => {
+    try {
+      setLoading(true);
+      
+      // Update the current log entry with location data
+      if (currentLocation) {
+        await updateLocationInLog(currentLocation);
+      }
+      
+      // Show confirmation dialog
+      setPendingDutyStatus({
+        ...dutyStatus,
+        status: newStatus,
+        startTime: new Date().toISOString(),
+      });
+      
+      setShowDutyDialog(true);
+    } catch (error) {
+      console.error('Error updating duty status:', error);
+      addToast({
+        title: 'Status Update Failed',
+        description: 'Failed to update your duty status.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
     // Determine what form fields to show based on the transition
     const isFromOffDuty = dutyStatus.status === 'off_duty';
     const isToOffDuty = newStatus === 'off_duty';
