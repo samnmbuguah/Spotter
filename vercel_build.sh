@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit on any error
+
 # Install Python dependencies
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
@@ -8,7 +10,7 @@ pip install -r backend/requirements.txt
 # Build frontend
 echo "Building frontend..."
 cd frontend
-npm install
+npm ci --only=production  # Use npm ci for faster, reliable builds
 npm run build
 cd ..
 
@@ -19,9 +21,9 @@ cp -r frontend/build/* backend/static/
 # Run migrations and collect static files
 echo "Running database migrations..."
 cd backend
-python manage.py migrate --noinput
+python3 manage.py migrate --noinput
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python3 manage.py collectstatic --noinput
 
 # Create a simple wsgi.py file for Vercel
 echo "Creating Vercel WSGI configuration..."

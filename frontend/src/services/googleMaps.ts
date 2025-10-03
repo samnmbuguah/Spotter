@@ -3,17 +3,25 @@ const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
 declare global {
   interface Window {
-    google: typeof google;
+    google: any;
     initMap: () => void;
   }
 }
 
-let googleMaps: typeof google.maps | null = null;
+let googleMaps: any = null;
 let mapsApiLoaded = false;
 
 const loadGoogleMapsScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (mapsApiLoaded) {
+      resolve();
+      return;
+    }
+
+    // Skip loading if no API key is provided (build-time safety)
+    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+      console.warn('Google Maps API key not configured. Maps functionality will not work.');
+      mapsApiLoaded = true;
       resolve();
       return;
     }
@@ -29,14 +37,16 @@ const loadGoogleMapsScript = (): Promise<void> => {
     };
 
     script.onerror = (error) => {
-      reject(new Error('Failed to load Google Maps API'));
+      console.warn('Failed to load Google Maps API, continuing without maps functionality');
+      mapsApiLoaded = true;
+      resolve(); // Don't reject, just continue without maps
     };
 
     document.head.appendChild(script);
   });
 };
 
-export const loadGoogleMaps = async (): Promise<typeof google.maps> => {
+export const loadGoogleMaps = async (): Promise<any> => {
   if (googleMaps) {
     return googleMaps;
   }
@@ -56,7 +66,7 @@ export const loadGoogleMaps = async (): Promise<typeof google.maps> => {
   }
 };
 
-export const getGoogleMaps = (): typeof google.maps | null => {
+export const getGoogleMaps = (): any => {
   return googleMaps || window.google?.maps || null;
 };
 
