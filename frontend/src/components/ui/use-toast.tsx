@@ -109,17 +109,7 @@ const Toast: React.FC<ToastComponentProps> = ({
   variant = 'default',
   onDismiss,
 }) => {
-  const variantClasses = {
-    default: 'bg-white border border-gray-200',
-    destructive: 'bg-red-50 border border-red-200',
-    success: 'bg-green-50 border border-green-200',
-  } as const;
-
-  const textClasses = {
-    default: 'text-gray-800',
-    destructive: 'text-red-800',
-    success: 'text-green-800',
-  } as const;
+  // Styling is handled by className props directly
 
   return (
     <div className="flex-1">

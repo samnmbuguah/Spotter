@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../components/ui/use-toast';
 import { logService } from '../services/api';
-import { Calendar, Clock, MapPin, FileText, Download, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, FileText, Download, CheckCircle } from 'lucide-react';
 
 interface LogEntry {
   id: number;

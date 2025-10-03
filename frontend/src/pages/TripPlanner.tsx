@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ui/use-toast';
 import { tripService } from '../services/api';
@@ -85,7 +85,8 @@ const TripPlanner: React.FC = () => {
             setLoading(true);
             try {
               // Send location data instead of IDs - backend will create Location records
-              const trip = await tripService.createTrip({
+              // We don't need the trip data right now, so we'll just await the promise
+              await tripService.createTrip({
                 name: formData.name,
                 current_location_data: selectedLocations.origin ? {
                   address: selectedLocations.origin.address,
