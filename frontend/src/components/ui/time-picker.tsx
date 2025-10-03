@@ -13,7 +13,20 @@ interface TimePickerProps {
 }
 
 export function TimePicker({ value, onChange, className }: TimePickerProps) {
-  const [hours, minutes] = value ? value.split(':').map(Number) : [0, 0];
+  // Safely parse the time value
+  const parseTime = (timeValue: string) => {
+    if (!timeValue || typeof timeValue !== 'string') {
+      return [0, 0];
+    }
+
+    const [h, m] = timeValue.split(':').map(Number);
+    const hours = isNaN(h) || h < 0 || h > 23 ? 0 : h;
+    const minutes = isNaN(m) || m < 0 || m > 59 ? 0 : m;
+
+    return [hours, minutes];
+  };
+
+  const [hours, minutes] = parseTime(value);
   
   const handleHourChange = (newHour: number) => {
     const newTime = `${String(newHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
@@ -26,7 +39,17 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
   };
   
   const formatTime = (time: string) => {
+    if (!time || typeof time !== 'string') {
+      return 'Invalid time';
+    }
+
     const [h, m] = time.split(':').map(Number);
+
+    // Validate that we have valid numbers
+    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+      return 'Invalid time';
+    }
+
     const date = new Date();
     date.setHours(h, m);
     return format(date, 'h:mm a');

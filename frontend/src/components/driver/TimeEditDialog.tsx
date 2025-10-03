@@ -1,4 +1,7 @@
 import React from 'react';
+import { format } from 'date-fns';
+import { TimePicker } from '../ui/time-picker';
+import { Button } from '../ui/button';
 
 interface TimeEditDialogProps {
   isOpen: boolean;
@@ -30,6 +33,20 @@ export const TimeEditDialog: React.FC<TimeEditDialogProps> = ({
     onSave(time);
   };
 
+  const setPresetTime = (minutesToSubtract: number) => {
+    const currentDateTime = new Date();
+    const newDateTime = new Date(currentDateTime.getTime() - (minutesToSubtract * 60 * 1000));
+    const timeString = format(newDateTime, 'HH:mm');
+    setTime(timeString);
+  };
+
+  const presetButtons = [
+    { label: 'Now', minutes: 0 },
+    { label: '15m ago', minutes: 15 },
+    { label: '30m ago', minutes: 30 },
+    { label: '1h ago', minutes: 60 },
+  ];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
@@ -37,17 +54,37 @@ export const TimeEditDialog: React.FC<TimeEditDialogProps> = ({
           {title}
         </h3>
         
+        {/* Preset Time Buttons */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Quick Times
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {presetButtons.map((preset) => (
+              <Button
+                key={preset.label}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPresetTime(preset.minutes)}
+                className="text-xs"
+                disabled={loading}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Time
             </label>
-            <input
-              type="datetime-local"
+            <TimePicker
               value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
-              required
+              onChange={setTime}
+              className="w-full"
             />
           </div>
 

@@ -2,8 +2,8 @@ import React from 'react';
 import { DutyStatus, DUTY_STATUS_OPTIONS } from './types';
 
 interface DutyStatusControlsProps {
-  currentStatus: string;
-  loading: boolean;
+  currentStatus: DutyStatus;
+  loading?: boolean;
   onStatusChange: (status: DutyStatus) => void;
 }
 

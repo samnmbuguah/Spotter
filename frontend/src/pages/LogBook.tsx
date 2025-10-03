@@ -269,30 +269,30 @@ Generated on: ${new Date().toLocaleString()}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                 {formatDuration(todaysDailyLog.total_off_duty_hours)}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Off Duty</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Off Duty</div>
             </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                 {formatDuration(todaysDailyLog.total_sleeper_berth_hours)}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Sleeper Berth</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Sleeper Berth</div>
             </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                 {formatDuration(todaysDailyLog.total_driving_hours)}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Driving</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Driving</div>
             </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                 {formatDuration(todaysDailyLog.total_on_duty_hours)}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">On Duty</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">On Duty</div>
             </div>
           </div>
         </div>

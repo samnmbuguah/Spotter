@@ -12,6 +12,8 @@ urlpatterns = [
     path('daily/', views.DailyLogListCreateView.as_view(), name='daily-log-list-create'),
     path('daily/<int:pk>/', views.DailyLogDetailView.as_view(), name='daily-log-detail'),
     path('daily/<int:pk>/certify/', views.certify_daily_log, name='certify-daily-log'),
+    path('daily/generate/', views.generate_daily_log, name='generate-daily-log'),
+    path('daily/generate/<str:log_date>/', views.generate_daily_log, name='generate-daily-log-date'),
 
     # Current trip and status endpoints
     path('current-trip/', views.get_current_trip, name='current-trip'),

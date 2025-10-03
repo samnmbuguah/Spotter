@@ -151,24 +151,27 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     try {
       setIsLoading(true);
 
-      // Convert suggestion to Place object
-      const place = suggestion.placePrediction.toPlace();
+      // Get place details using Place Details API
+      const placeService = new window.google.maps.places.PlacesService(document.createElement('div'));
+      const request = {
+        placeId: suggestion.placePrediction.placeId,
+        fields: ['formatted_address', 'geometry'],
+      };
 
-      // Fetch the place details
-      await place.fetchFields({
-        fields: ['formattedAddress', 'location'],
+      placeService.getDetails(request, (place, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+          setInputValue(suggestion.placePrediction.text.text);
+          setShowDropdown(false);
+
+          if (place.formatted_address && place.geometry?.location) {
+            onSelect({
+              address: place.formatted_address,
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng(),
+            });
+          }
+        }
       });
-
-      setInputValue(suggestion.placePrediction.text.text);
-      setShowDropdown(false);
-
-      if (place.formattedAddress && place.location) {
-        onSelect({
-          address: place.formattedAddress,
-          lat: place.location.lat(),
-          lng: place.location.lng(),
-        });
-      }
 
       // Create a new session token for the next request
       sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
@@ -267,6 +270,9 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
               >
                 <div className="font-medium text-gray-900 dark:text-white">
                   {suggestion.placePrediction.text.text}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Click to get coordinates
                 </div>
               </button>
             ))}
