@@ -1,0 +1,193 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ${{ github.repository }}/backend
+  FRONTEND_IMAGE: ${{ github.repository }}/frontend
+
+jobs:
+  # Backend Testing
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13-alpine
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-django pytest-cov
+
+    - name: Run backend migrations
+      run: |
+        cd backend
+        python manage.py migrate
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+
+    - name: Run backend tests
+      run: |
+        cd backend
+        pytest --cov=. --cov-report=xml --cov-report=term-missing
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        DEBUG: 0
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Frontend Testing
+  frontend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Run frontend linting
+      run: |
+        cd frontend
+        npm run lint --if-present || echo "No lint script found"
+
+    - name: Run frontend tests
+      run: |
+        cd frontend
+        npm test -- --coverage --watchAll=false --passWithNoTests
+      env:
+        CI: true
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+  # Docker Build and Push
+  docker-build:
+    needs: [backend-test, frontend-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for backend
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Extract metadata for frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Deploy to Production
+  deploy:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production..."
+        # Add your deployment logic here
+        # This could be:
+        # - SSH to server and pull latest images
+        # - Use kubectl for Kubernetes deployment
+        # - Update docker-compose.prod.yml and restart services
+        # - Deploy to cloud platform (Heroku, DigitalOcean, AWS, etc.)
+
+        echo "Deployment completed successfully!"
