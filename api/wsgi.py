@@ -41,6 +41,10 @@ if not settings.configured:
         CORS_ALLOW_ALL_ORIGINS=True,
         USE_TZ=True,
         ROOT_URLCONF='config.urls',
+        # Static files configuration for serverless
+        STATIC_URL='/static/',
+        STATICFILES_DIRS=[],
+        STATIC_ROOT=None,
         TEMPLATES=[{
             'BACKEND': 'django.template.backends.django.DjangoTemplates',
             'DIRS': [],

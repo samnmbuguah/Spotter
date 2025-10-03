@@ -16,7 +16,7 @@ urlpatterns = [
 # Serve React static files (always enabled for both development and production)
 urlpatterns += [
     re_path(r'^static/(?P<path>.*)$', serve, {
-        'document_root': settings.STATICFILES_DIRS[0],
+        'document_root': settings.STATICFILES_DIRS[0] if settings.STATICFILES_DIRS else settings.STATIC_ROOT or '/tmp',
     }),
 ]
 
