@@ -32,7 +32,7 @@ export interface DutyStatusData {
 }
 
 export interface DutyStatusFormData {
-  location: string;
+  location: LocationData | null;
   notes: string;
   vehicleInfo: string;
   trailerInfo: string;

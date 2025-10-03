@@ -19,10 +19,10 @@ export const DutyStatusControls: React.FC<DutyStatusControlsProps> = ({
           key={option.value}
           onClick={() => onStatusChange(option.value)}
           disabled={loading}
-          className={`flex items-center justify-center p-4 rounded-lg transition-colors ${
+          className={`flex items-center justify-center p-4 rounded-lg transition-colors font-medium ${
             currentStatus === option.value
-              ? `${option.color} text-white`
-              : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+              ? `${option.color} text-white shadow-md`
+              : 'bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
           }`}
         >
           {option.label}

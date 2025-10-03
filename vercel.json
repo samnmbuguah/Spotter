@@ -8,10 +8,13 @@
         "runtime": "python3.11",
         "maxLambdaSize": "15mb",
         "includeFiles": [
-          "backend//*",
-          "!backend/pycache/",
-          "!backend//pycache/**",
-          "!backend//migrations/**"
+          "backend/**",
+          "!backend/**/*.pyc",
+          "!backend/**/__pycache__/**",
+          "!backend/**/migrations/**",
+          "!backend/db.sqlite3",
+          "!backend/venv/**",
+          "!backend/.pytest_cache/**"
         ]
       }
     },
@@ -29,13 +32,10 @@
       "dest": "/api/wsgi.py"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "/backend/static/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/backend/static/index.html"
+      "dest": "/$1"
     }
   ],
-  "buildCommand": "./vercel_build.sh"
+  "buildCommand": "./vercel_build.sh",
+  "outputDirectory": "frontend/build"
 }

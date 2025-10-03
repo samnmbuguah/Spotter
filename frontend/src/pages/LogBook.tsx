@@ -75,11 +75,32 @@ const LogBook: React.FC = () => {
   }, [selectedDate, loadLogData]);
 
   const formatTime = (timeString: string) => {
-    return new Date(`1970-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+    if (!timeString) return '';
+    // Handle time string format (HH:MM:SS or HH:MM)
+    const timeParts = timeString.split(':');
+    if (timeParts.length < 2) return timeString; // Return as-is if not in expected format
+
+    try {
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = parseInt(timeParts[1], 10);
+
+      // Validate hours and minutes
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return timeString; // Return original if invalid
+      }
+
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch (error) {
+      console.error('Error formatting time:', timeString, error);
+      return timeString; // Return original on error
+    }
   };
 
   const formatDuration = (hours: number) => {
@@ -150,15 +171,14 @@ const LogBook: React.FC = () => {
 
     setLoading(true);
     try {
-      // Generate PDF content (simplified version)
-      const pdfContent = generateLogPDFContent(todaysEntries, todaysDailyLog);
+      // Call the backend API to generate proper PDF
+      const pdfBlob = await logService.downloadDailyLogPDF(selectedDate);
 
-      // Create blob and download
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
+      // Create download link
+      const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `drivers-log-${selectedDate}.pdf`;
+      link.download = `hos-log-${selectedDate}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

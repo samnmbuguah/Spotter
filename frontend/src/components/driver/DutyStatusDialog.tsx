@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { DutyStatus, DutyStatusFormData } from './types';
+import { DutyStatus, DutyStatusFormData, LocationData } from './types';
+import LocationInput from '../LocationInput';
 
 interface DutyStatusDialogProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
   currentLocation,
 }) => {
   const [formData, setFormData] = useState<DutyStatusFormData>({
-    location: '',
+    location: null,
     notes: '',
     vehicleInfo: '',
     trailerInfo: '',
@@ -31,7 +32,11 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
     if (currentLocation) {
       setFormData(prev => ({
         ...prev,
-        location: `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`
+        location: {
+          address: `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`,
+          lat: currentLocation.lat,
+          lng: currentLocation.lng
+        }
       }));
     }
   }, [currentLocation]);
@@ -39,6 +44,13 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    setFormData(prev => ({
+      ...prev,
+      location: location
+    }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -60,16 +72,13 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Location
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
+            <LocationInput
+              onLocationSelect={handleLocationSelect}
+              initialValue={formData.location?.address || ''}
+              placeholder="Search for location or use current location"
+              label="Location"
               required
+              showCoordinates={true}
             />
           </div>
 

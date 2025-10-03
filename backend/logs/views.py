@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from datetime import date, timedelta
 from django.utils import timezone
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -343,8 +343,9 @@ def download_daily_log_pdf(request, log_date=None):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="hos_log_{target_date}.pdf"'
 
-    # Create PDF document
-    doc = SimpleDocTemplate(response, pagesize=letter)
+    # Create PDF document - landscape for better grid layout
+    from reportlab.lib.pagesizes import letter, landscape
+    doc = SimpleDocTemplate(response, pagesize=landscape(letter))
     styles = getSampleStyleSheet()
 
     # Custom styles
@@ -370,7 +371,7 @@ def download_daily_log_pdf(request, log_date=None):
     content = []
 
     # Title
-    content.append(Paragraph(f"HOS Daily Log - {target_date}", title_style))
+    content.append(Paragraph(f"DRIVER'S DAILY LOG - {target_date.strftime('%B %d, %Y')}", title_style))
     content.append(Spacer(1, 20))
 
     # Driver Information
@@ -380,6 +381,10 @@ def download_daily_log_pdf(request, log_date=None):
         ['Date:', target_date.strftime('%B %d, %Y')],
         ['Company:', getattr(request.user, 'company', 'N/A')],
         ['License Number:', getattr(request.user, 'license_number', 'N/A')],
+        ['Co-Driver:', ''],
+        ['Vehicle Number:', ''],
+        ['Trailer Number:', ''],
+        ['Shipping Document:', ''],
     ]
 
     driver_table = Table(driver_info_data, colWidths=[2*inch, 4*inch])
@@ -394,14 +399,28 @@ def download_daily_log_pdf(request, log_date=None):
     content.append(driver_table)
     content.append(Spacer(1, 20))
 
-    # Daily Summary
+    # Create the visual 24-hour grid
+    if log_entries.exists():
+        content.append(Paragraph("DAILY LOG GRID", header_style))
+        content.append(Spacer(1, 10))
+
+        # Create the visual grid
+        grid_content = create_eld_grid(log_entries, daily_log)
+        content.extend(grid_content)
+    else:
+        content.append(Paragraph("NO LOG ENTRIES FOUND FOR THIS DATE", header_style))
+        content.append(Paragraph("No driving activity was recorded for this date.", normal_style))
+
+    content.append(Spacer(1, 30))
+
+    # Daily Summary Table
     content.append(Paragraph("DAILY SUMMARY", header_style))
     summary_data = [
-        ['Total Driving Hours:', f"{daily_log.total_driving_hours:.1f}"],
-        ['Total On-Duty Hours:', f"{daily_log.total_on_duty_hours:.1f}"],
-        ['Total Off-Duty Hours:', f"{daily_log.total_off_duty_hours:.1f}"],
-        ['Total Sleeper Berth Hours:', f"{daily_log.total_sleeper_berth_hours:.1f}"],
-        ['HOS Compliant:', 'YES' if daily_log.is_hos_compliant() else 'NO'],
+        ['Total Driving Hours:', f"{daily_log.total_driving_hours:.1f}h"],
+        ['Total On-Duty Hours:', f"{daily_log.total_on_duty_hours:.1f}h"],
+        ['Total Off-Duty Hours:', f"{daily_log.total_off_duty_hours:.1f}h"],
+        ['Total Sleeper Berth Hours:', f"{daily_log.total_sleeper_berth_hours:.1f}h"],
+        ['HOS Compliant:', 'YES ✓' if daily_log.is_hos_compliant() else 'NO ✗'],
     ]
 
     summary_table = Table(summary_data, colWidths=[2.5*inch, 3.5*inch])
@@ -414,54 +433,6 @@ def download_daily_log_pdf(request, log_date=None):
         ('GRID', (0, 0), (-1, -1), 1, colors.black)
     ]))
     content.append(summary_table)
-    content.append(Spacer(1, 20))
-
-    # Log Entries
-    if log_entries.exists():
-        content.append(Paragraph("DETAILED LOG ENTRIES", header_style))
-
-        # Table headers
-        entry_headers = ['Time', 'Duty Status', 'Location', 'Vehicle', 'Trailer', 'Odometer', 'Hours', 'Notes']
-
-        entry_data = [entry_headers]
-
-        # Add each log entry
-        for entry in log_entries:
-            start_time_str = entry.start_time.strftime('%H:%M') if entry.start_time else ''
-            end_time_str = entry.end_time.strftime('%H:%M') if entry.end_time else ''
-            time_str = f"{start_time_str}-{end_time_str}" if end_time_str else start_time_str
-
-            row = [
-                time_str,
-                entry.duty_status.replace('_', ' ').title(),
-                entry.location or '',
-                entry.vehicle_info or '',
-                entry.trailer_info or '',
-                f"{entry.odometer_start or ''}-{entry.odometer_end or ''}",
-                f"{entry.total_hours:.1f}",
-                entry.notes or ''
-            ]
-            entry_data.append(row)
-
-        # Create table
-        entry_table = Table(entry_data, colWidths=[0.8*inch, 1.2*inch, 1.5*inch, 1*inch, 1*inch, 1*inch, 0.7*inch, 1.8*inch])
-
-        entry_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ]))
-
-        content.append(entry_table)
-    else:
-        content.append(Paragraph("NO LOG ENTRIES FOUND FOR THIS DATE", header_style))
-        content.append(Paragraph("No driving activity was recorded for this date.", normal_style))
-
     content.append(Spacer(1, 30))
 
     # Certification section
@@ -493,3 +464,102 @@ def download_daily_log_pdf(request, log_date=None):
     doc.build(content)
 
     return response
+
+
+def create_eld_grid(log_entries, daily_log):
+    """Create a visual 24-hour ELD grid"""
+    from reportlab.platypus import Table, TableStyle
+    from reportlab.lib import colors
+
+    content = []
+
+    # Create 24-hour header
+    hours = []
+    for hour in range(24):
+        hours.append(f"{hour:02d}:00")
+
+    # Create grid data (25 rows for 24 hours + header, 25 columns for hours + status column)
+    grid_data = [['Time'] + hours]
+
+    # Color mapping for duty statuses
+    status_colors = {
+        'off_duty': colors.lightgray,
+        'sleeper_berth': colors.lightblue,
+        'driving': colors.lightgreen,
+        'on_duty_not_driving': colors.lightyellow,
+    }
+
+    # Create a row for each status type to show visual bars
+    status_types = ['off_duty', 'sleeper_berth', 'driving', 'on_duty_not_driving']
+
+    for status in status_types:
+        row = [status.replace('_', ' ').title()]
+
+        # Create visual bar for each hour
+        for hour in range(24):
+            # Check if this status was active during this hour
+            hour_start = timezone.datetime.combine(daily_log.date, timezone.datetime.min.time()) + timezone.timedelta(hours=hour)
+            hour_end = hour_start + timezone.timedelta(hours=1)
+
+            # Find if any log entry overlaps with this hour
+            status_active = False
+            for entry in log_entries:
+                if entry.duty_status == status and entry.start_time:
+                    entry_start = timezone.datetime.combine(daily_log.date, entry.start_time)
+
+                    # Calculate entry end time
+                    if entry.end_time:
+                        entry_end = timezone.datetime.combine(daily_log.date, entry.end_time)
+                    else:
+                        # If no end time, assume it runs to the end of the calculated duration
+                        entry_end = entry_start + timezone.timedelta(hours=float(entry.total_hours or 0))
+
+                    # Check if entry overlaps with this hour (partial overlap counts)
+                    if (entry_start < hour_end) and (entry_end > hour_start):
+                        status_active = True
+                        break
+
+            if status_active:
+                # Create a colored rectangle using Unicode block character
+                row.append('█')  # Solid block character
+            else:
+                row.append('')
+
+        grid_data.append(row)
+
+    # Create the visual grid table
+    grid_table = Table(grid_data, colWidths=[1.5*inch] + [0.3*inch]*24)
+
+    grid_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgray),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # Color the status rows
+        ('BACKGROUND', (1, 1), (-1, 1), status_colors['off_duty']),
+        ('BACKGROUND', (1, 2), (-1, 2), status_colors['sleeper_berth']),
+        ('BACKGROUND', (1, 3), (-1, 3), status_colors['driving']),
+        ('BACKGROUND', (1, 4), (-1, 4), status_colors['on_duty_not_driving']),
+    ]))
+
+    content.append(grid_table)
+
+    # Add legend
+    content.append(Spacer(1, 20))
+    legend_data = [
+        ['█ Off Duty (Gray)', '█ Sleeper Berth (Blue)', '█ Driving (Green)', '█ On Duty (Yellow)'],
+    ]
+
+    legend_table = Table(legend_data, colWidths=[2.5*inch, 2.5*inch, 2*inch, 2*inch])
+    legend_table.setStyle(TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    ]))
+
+    content.append(legend_table)
+
+    return content

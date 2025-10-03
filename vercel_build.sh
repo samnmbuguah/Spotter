@@ -2,32 +2,22 @@
 
 set -e  # Exit on any error
 
-# Install Python dependencies
+echo "Starting Vercel build process..."
+
+# Install Python dependencies for the backend API
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
-pip install -r backend/requirements.txt
 
 # Build frontend
 echo "Building frontend..."
 cd frontend
-npm ci --production=false  # Install all dependencies including devDependencies for build
+npm ci --production=false
 npm run build
 cd ..
 
-# Copy frontend build to Django static files
-echo "Copying frontend files..."
-cp -r frontend/build/* backend/static/
-
-# Run migrations and collect static files
-echo "Running database migrations..."
-cd backend
-python3 manage.py migrate --noinput
-echo "Collecting static files..."
-python3 manage.py collectstatic --noinput
-
-# Create a simple wsgi.py file for Vercel
+# Create a simple wsgi.py file for Vercel (no database operations needed)
 echo "Creating Vercel WSGI configuration..."
-cat > ../api/wsgi.py << 'EOL'
+cat > api/wsgi.py << 'EOL'
 import os
 import sys
 from pathlib import Path
@@ -38,9 +28,10 @@ if backend_path not in sys.path:
     sys.path.append(backend_path)
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault('VERCEL', '1')  # Signal we're on Vercel
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
 EOL
 
-echo "Build completed successfully!"
+echo "Vercel build completed successfully!"

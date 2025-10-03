@@ -108,20 +108,26 @@ const DriverDashboard: React.FC = () => {
   // Confirm duty status change
   const confirmDutyStatusChange = useCallback(async (formData: DutyStatusFormData) => {
     if (!pendingDutyStatus) return;
-    
+
     try {
       setLoading(true);
-      
+
+      // Convert LocationData to string format for API
+      const locationString = formData.location ? formData.location.address : '';
+
       await logService.updateLogEntry(0, {
         ...pendingDutyStatus,
+        location: locationString,
+        latitude: formData.location?.lat,
+        longitude: formData.location?.lng,
         ...formData,
         odometerStart: formData.odometerStart ? parseFloat(formData.odometerStart) : undefined,
         odometerEnd: formData.odometerEnd ? parseFloat(formData.odometerEnd) : undefined,
       });
-      
+
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
-      
+
       addToast({
         title: 'Status Updated',
         description: `You are now ${pendingDutyStatus.status.replace(/_/g, ' ')}`,

@@ -1,0 +1,48 @@
+# Vercel deployment ignore file
+# Exclude development and build artifacts
+
+# Git
+.git
+.gitignore
+.github/
+
+# Documentation
+README.md
+DEPLOYMENT.md
+FRONTEND_DEPLOYMENT.md
+
+# Docker files (not needed for Vercel)
+docker-compose.yml
+docker-compose.prod.yml
+Dockerfile*
+.dockerignore
+
+# Build and cache directories
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+frontend/node_modules/
+frontend/build/
+frontend/.next/
+
+# Database (Vercel doesn't persist databases)
+backend/db.sqlite3
+backend/logs/migrations/
+
+# Development files
+.env*
+!.env.example
+.vscode/
+.idea/
+
+# Scripts (not needed for deployment)
+scripts/
+build.sh
+
+# MCP and other config files
+mcp_config.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
