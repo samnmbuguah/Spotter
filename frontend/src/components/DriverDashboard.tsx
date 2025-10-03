@@ -187,36 +187,6 @@ const DriverDashboard: React.FC = () => {
     }
   }, [addToast]);
 
-  // Handle duty status changes
-  const handleDutyStatusChange = useCallback((newStatus: DutyStatus) => {
-    try {
-      setLoading(true);
-      
-      // Update the current log entry with location data
-      if (currentLocation) {
-        updateLocationInLog(currentLocation);
-      }
-      
-      // Show confirmation dialog
-      setPendingDutyStatus({
-        ...dutyStatus,
-        status: newStatus,
-        startTime: new Date().toISOString(),
-      });
-      
-      setShowDutyDialog(true);
-    } catch (error) {
-      console.error('Error updating duty status:', error);
-      addToast({
-        title: 'Status Update Failed',
-        description: 'Failed to update your duty status.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [currentLocation, dutyStatus, updateLocationInLog, addToast]);
-
   // Effects
   useEffect(() => {
     // Load initial data
@@ -254,8 +224,8 @@ const DriverDashboard: React.FC = () => {
     updateLocationInLog
   ]);
 
-  // Event Handlers
-  const handleDutyStatusChange = async (newStatus: DutyStatusData['status']) => {
+  // Handle duty status changes
+  const handleDutyStatusChange = useCallback(async (newStatus: DutyStatus) => {
     try {
       setLoading(true);
       
@@ -283,20 +253,6 @@ const DriverDashboard: React.FC = () => {
       setLoading(false);
     }
   };
-    // Determine what form fields to show based on the transition
-    const isFromOffDuty = dutyStatus.status === 'off_duty';
-    const isToOffDuty = newStatus === 'off_duty';
-
-    // Pre-fill form data based on transition type
-    const prefilledFormData = {
-      location: currentLocation ?
-        `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}` : '',
-      notes: '',
-      vehicleInfo: isFromOffDuty ? '' : '', // Only required when starting duty
-      trailerInfo: isFromOffDuty ? '' : '', // Only required when starting duty
-      odometerStart: isFromOffDuty ? '' : '', // Only required when starting duty
-      odometerEnd: isToOffDuty ? '' : '', // Only required when ending duty
-    };
 
     setFormData(prefilledFormData);
 
@@ -1089,13 +1045,13 @@ const DriverDashboard: React.FC = () => {
                   step="0.1"
                   min="0"
                   value={editedDuration}
-                  onChange={(e) => setEditedDuration(e.target.value)}
+                  onChange={(e) => setEditedDuration(parseFloat(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="e.g., 8.5"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Enter duration in hours with 1 decimal place (e.g., 8.5 for 8 hours 30 minutes)
-                </p>
+{{ ... }}
               </div>
 
               <div className="flex space-x-3">
