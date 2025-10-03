@@ -129,7 +129,7 @@ class DutyStatusLogSerializer(serializers.ModelSerializer):
         default=[]
     )
     co_driver = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(is_driver=True),
+        queryset=User.objects.all(),
         required=False,
         allow_null=True
     )
