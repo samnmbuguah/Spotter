@@ -29,8 +29,7 @@ urlpatterns = [
     # Driver Profile
     path('driver-profile/', views.DriverProfileView.as_view(), name='driver-profile'),
     
-    # Auth Check
-    path('check-auth/', views.CheckAuthView.as_view(), name='check-auth'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
     
     # Health Check
     path('health/', views.health_check, name='health-check'),

@@ -254,14 +254,29 @@ class CheckAuthView(APIView):
                 'current_trailer': user.driver_profile.current_trailer,
             }
         
-        return Response({
-            'isAuthenticated': True,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'name': user.name,
-                'is_driver': user.is_driver,
-                'is_dispatcher': user.is_dispatcher,
-                'driver_profile': driver_profile,
-            }
-        })
+class LogoutView(APIView):
+    """Logout user and blacklist refresh token."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        """Logout user and blacklist refresh token."""
+        try:
+            refresh_token = request.data.get('refresh')
+            if refresh_token:
+                # Blacklist the refresh token
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+
+            return Response({
+                'message': 'Successfully logged out'
+            })
+        except Exception as e:
+            # Return success even if token blacklisting fails
+            # The client-side cleanup will still happen
+            return Response({
+                'message': 'Logged out successfully'
+            })

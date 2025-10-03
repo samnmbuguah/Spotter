@@ -96,12 +96,12 @@ export const useAuth = () => {
   // Logout function
   const logout = async () => {
     try {
-      await authService.logout();
+      await storeLogout();
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      // Clear auth state
+      // Even if API call fails, clear local state
       storeLogout();
+    } finally {
       // Clear all queries
       queryClient.clear();
       // Show logout message
