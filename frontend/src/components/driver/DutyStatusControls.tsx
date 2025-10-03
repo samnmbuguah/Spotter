@@ -1,0 +1,33 @@
+import React from 'react';
+import { DutyStatus, DUTY_STATUS_OPTIONS } from './types';
+
+interface DutyStatusControlsProps {
+  currentStatus: string;
+  loading: boolean;
+  onStatusChange: (status: DutyStatus) => void;
+}
+
+export const DutyStatusControls: React.FC<DutyStatusControlsProps> = ({
+  currentStatus,
+  loading,
+  onStatusChange,
+}) => {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+      {DUTY_STATUS_OPTIONS.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => onStatusChange(option.value)}
+          disabled={loading}
+          className={`flex items-center justify-center p-4 rounded-lg transition-colors ${
+            currentStatus === option.value
+              ? `${option.color} text-white`
+              : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+};
