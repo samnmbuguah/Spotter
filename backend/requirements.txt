@@ -1,0 +1,16 @@
+Django==5.2.7
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+djangorestframework-simplejwt==5.5.1
+psycopg2-binary==2.9.10
+python-dotenv==1.1.1
+pytz==2024.1
+
+# Testing dependencies
+pytest==7.4.0
+pytest-django==4.5.2
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==19.2.0
+responses==0.23.3
+
