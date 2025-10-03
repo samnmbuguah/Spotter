@@ -64,7 +64,7 @@ const Header: React.FC = () => {
             {isAuthenticated && (
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+                className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -109,7 +109,7 @@ const Header: React.FC = () => {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -118,9 +118,9 @@ const Header: React.FC = () => {
             {isAuthenticated && (
               <>
                 {/* User Profile - Hidden on mobile */}
-                <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700">
-                  <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <User className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {firstName}
                   </span>
                 </div>
@@ -128,7 +128,7 @@ const Header: React.FC = () => {
                 {/* Logout Button - Hidden on mobile */}
                 <button
                   onClick={handleLogout}
-                  className="hidden md:flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400"
+                  className="hidden md:flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                 >
                   <LogOut className="h-5 w-5" />
                   <span>Sign out</span>
@@ -149,10 +149,10 @@ const Header: React.FC = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium ${
+                    className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors ${
                       isActive
                         ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-200'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                        : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -164,7 +164,7 @@ const Header: React.FC = () => {
               <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center px-4 py-3">
                   <div className="flex-shrink-0">
-                    <User className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700 p-2 text-gray-600 dark:text-gray-300" />
+                    <User className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 p-2 text-gray-700 dark:text-gray-300" />
                   </div>
                   <div className="ml-3">
                     <div className="text-base font-medium text-gray-800 dark:text-white">
@@ -181,13 +181,13 @@ const Header: React.FC = () => {
                       navigate('/settings');
                       setIsMobileMenuOpen(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-md"
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-md transition-colors"
                   >
                     Settings
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-800 dark:hover:text-red-200 rounded-md transition-colors"
                   >
                     Sign out
                   </button>
