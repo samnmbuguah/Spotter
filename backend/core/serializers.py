@@ -4,6 +4,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core import exceptions as django_exceptions
 from django.db import IntegrityError, transaction
 
+from .models import DriverProfile  # Added missing import
+
 User = get_user_model()
 
 
@@ -63,8 +65,7 @@ class DriverProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
-        # Temporarily disable this serializer for deployment
-        # model = User.driver_profile.related_model
+        model = DriverProfile  # Fixed: uncommented and properly referenced
         fields = [
             'id', 'user', 'license_number', 'license_expiry', 'phone_number', 'company',
             'timezone', 'default_cycle', 'auto_close_trip_at_midnight', 'auto_close_trip_time'
