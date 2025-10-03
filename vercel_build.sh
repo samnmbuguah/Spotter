@@ -10,7 +10,7 @@ pip install -r backend/requirements.txt
 # Build frontend
 echo "Building frontend..."
 cd frontend
-npm ci --only=production  # Use npm ci for faster, reliable builds
+npm ci --production=false  # Install all dependencies including devDependencies for build
 npm run build
 cd ..
 
