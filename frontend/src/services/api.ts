@@ -1,7 +1,7 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
 
 // API base URL - adjust based on your Django server
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
+const API_BASE_URL = '/api/v1';
 
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
