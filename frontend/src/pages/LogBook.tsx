@@ -440,6 +440,8 @@ Generated on: ${new Date().toLocaleString()}
             </table>
           </div>
         </div>
+        </div>
+        </div>
       </div>
     </div>
   );
