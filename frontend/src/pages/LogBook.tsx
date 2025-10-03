@@ -104,6 +104,9 @@ const LogBook: React.FC = () => {
   };
 
   const formatDuration = (hours: number) => {
+    if (typeof hours !== 'number' || isNaN(hours) || !isFinite(hours)) {
+      return '0h 0m';
+    }
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
     return `${wholeHours}h ${minutes}m`;
@@ -208,15 +211,15 @@ Date: ${new Date(selectedDate).toLocaleDateString()}
 Driver: Driver Name
 
 DAILY SUMMARY:
-- Off Duty: ${formatDuration(dailyLog.total_off_duty_hours)}
-- Sleeper Berth: ${formatDuration(dailyLog.total_sleeper_berth_hours)}
-- Driving: ${formatDuration(dailyLog.total_driving_hours)}
-- On Duty (Not Driving): ${formatDuration(dailyLog.total_on_duty_hours)}
+- Off Duty: ${formatDuration(dailyLog.total_off_duty_hours || 0)}
+- Sleeper Berth: ${formatDuration(dailyLog.total_sleeper_berth_hours || 0)}
+- Driving: ${formatDuration(dailyLog.total_driving_hours || 0)}
+- On Duty (Not Driving): ${formatDuration(dailyLog.total_on_duty_hours || 0)}
 - Status: ${dailyLog.is_certified ? 'CERTIFIED' : 'NOT CERTIFIED'}
 
 LOG ENTRIES:
 ${entries.map((entry, index) =>
-  `${index + 1}. ${DUTY_STATUS_LABELS[entry.duty_status]} - ${formatTime(entry.start_time)}${entry.end_time ? ` to ${formatTime(entry.end_time)}` : ''} (${formatDuration(entry.total_hours)})${entry.location ? ` at ${entry.location}` : ''}${entry.notes ? ` - ${entry.notes}` : ''}`
+  `${index + 1}. ${DUTY_STATUS_LABELS[entry.duty_status]} - ${formatTime(entry.start_time)}${entry.end_time ? ` to ${formatTime(entry.end_time)}` : ''} (${formatDuration(entry.total_hours || 0)})${entry.location ? ` at ${entry.location}` : ''}${entry.notes ? ` - ${entry.notes}` : ''}`
 ).join('\n')}
 
 Generated on: ${new Date().toLocaleString()}
@@ -229,40 +232,42 @@ Generated on: ${new Date().toLocaleString()}
   const todaysDailyLog = getTodaysDailyLog();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Driver's Log Book</h1>
-          <p className="text-gray-600 dark:text-gray-300">View and manage your Hours of Service logs</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          />
-          <button
-            onClick={generateDailyLog}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors"
-          >
-            <FileText className="w-4 h-4 mr-2 inline" />
-            Generate Log
-          </button>
-          {todaysDailyLog && (
-            <button
-              onClick={exportToPDF}
-              disabled={loading}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-md transition-colors ml-2"
-            >
-              <Download className="w-4 h-4 mr-2 inline" />
-              Export PDF
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Driver's Log Book</h1>
+              <p className="text-gray-600 dark:text-gray-300 text-lg">View and manage your Hours of Service logs</p>
+            </div>
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              />
+              <button
+                onClick={generateDailyLog}
+                disabled={loading}
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Generate Log</span>
+              </button>
+              {todaysDailyLog && (
+                <button
+                  onClick={exportToPDF}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export PDF</span>
+                </button>
+              )}
+            </div>
+          </div>
 
       {/* Daily Summary */}
       {todaysDailyLog && (
@@ -289,30 +294,30 @@ Generated on: ${new Date().toLocaleString()}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                {formatDuration(todaysDailyLog.total_off_duty_hours)}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                {formatDuration(todaysDailyLog.total_off_duty_hours || 0)}
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Off Duty</div>
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Off Duty</div>
             </div>
-            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                {formatDuration(todaysDailyLog.total_sleeper_berth_hours)}
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-shadow">
+              <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                {formatDuration(todaysDailyLog.total_sleeper_berth_hours || 0)}
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Sleeper Berth</div>
+              <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Sleeper Berth</div>
             </div>
-            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                {formatDuration(todaysDailyLog.total_driving_hours)}
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
+              <div className="text-2xl font-bold text-green-900 dark:text-green-100 mb-2">
+                {formatDuration(todaysDailyLog.total_driving_hours || 0)}
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Driving</div>
+              <div className="text-sm font-medium text-green-700 dark:text-green-300">Driving</div>
             </div>
-            <div className="text-center p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                {formatDuration(todaysDailyLog.total_on_duty_hours)}
+            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-shadow">
+              <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 mb-2">
+                {formatDuration(todaysDailyLog.total_on_duty_hours || 0)}
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">On Duty</div>
+              <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">On Duty</div>
             </div>
           </div>
         </div>
@@ -355,8 +360,8 @@ Generated on: ${new Date().toLocaleString()}
                           {entry.end_time && ` - ${formatTime(entry.end_time)}`}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
-                        {formatDuration(entry.total_hours)}
+                      <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                        {formatDuration(entry.total_hours || 0)}
                       </div>
                       {entry.location && (
                         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -423,7 +428,7 @@ Generated on: ${new Date().toLocaleString()}
                       {entry.location || '-'}
                     </td>
                     <td className="py-2 px-3 text-gray-900 dark:text-white font-medium">
-                      {formatDuration(entry.total_hours)}
+                      {formatDuration(entry.total_hours || 0)}
                     </td>
                     <td className="py-2 px-3 text-gray-600 dark:text-gray-300">
                       {entry.notes || '-'}
