@@ -5,7 +5,7 @@
       "src": "api/wsgi.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.11",
+        "runtime": "python3.12",
         "installCommand": "pip install -r requirements.txt && pip install -r backend/requirements.txt",
         "buildCommand": "cd frontend && npm install && npm run build && cp -r build/* ../backend/static/ && cd ../backend && python manage.py collectstatic --noinput && python manage.py migrate --noinput"
       }
