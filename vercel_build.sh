@@ -31,9 +31,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 os.environ.setdefault('VERCEL', '1')  # Signal we're on Vercel
 
 # Minimal Django setup for serverless
+import django
 from django.conf import settings
+
 if not settings.configured:
-    from django.conf import settings
     settings.configure(
         DEBUG=False,
         SECRET_KEY=os.environ.get('SECRET_KEY', 'fallback-key'),
@@ -42,10 +43,16 @@ if not settings.configured:
         INSTALLED_APPS=[
             'django.contrib.auth',
             'django.contrib.contenttypes',
+            'django.contrib.sessions',
+            'django.contrib.messages',
+            'django.contrib.staticfiles',
             'rest_framework',
             'corsheaders',
+            'rest_framework_simplejwt',
+            'rest_framework_simplejwt.token_blacklist',
             'core',
             'logs',
+            'trips',
         ],
         MIDDLEWARE=[
             'corsheaders.middleware.CorsMiddleware',
@@ -53,7 +60,10 @@ if not settings.configured:
         ],
         CORS_ALLOW_ALL_ORIGINS=True,
         USE_TZ=True,
+        SECRET_KEY_FALLBACK='fallback-secret-key-for-vercel',
     )
+
+django.setup()
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
