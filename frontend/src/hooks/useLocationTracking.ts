@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface LocationData {
   latitude: number;
@@ -24,7 +24,7 @@ export const useLocationTracking = () => {
 
   const lastLocationRef = useRef<LocationData | null>(null);
 
-  const startTracking = () => {
+  const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       setState(prev => ({
         ...prev,
@@ -90,22 +90,23 @@ export const useLocationTracking = () => {
     );
 
     setState(prev => ({ ...prev, watchId }));
-  };
+  }, []);
 
-  const stopTracking = () => {
+  const stopTracking = useCallback(() => {
     if (state.watchId !== null) {
       navigator.geolocation.clearWatch(state.watchId);
     }
 
-    setState({
+    setState(prev => ({
+      ...prev,
       currentLocation: null,
       isTracking: false,
       error: null,
       watchId: null,
-    });
+    }));
 
     lastLocationRef.current = null;
-  };
+  }, [state.watchId]);
 
   // Calculate distance between two coordinates in kilometers
   const calculateDistance = (

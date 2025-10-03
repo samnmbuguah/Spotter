@@ -30,7 +30,15 @@ module.exports = {
           500: '#ef4444',
           600: '#dc2626',
         }
-      }
+      },
+      backgroundColor: {
+        dark: '#1a202c',
+        'dark-card': '#2d3748',
+      },
+      textColor: {
+        dark: '#e2e8f0',
+        'dark-muted': '#a0aec0',
+      },
     },
   },
   plugins: [],

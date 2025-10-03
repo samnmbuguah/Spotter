@@ -1,15 +1,25 @@
-from django.http import JsonResponse
-from django.db import connection
+from django.http import JsonResponse, FileResponse
+from django.db import connection, transaction
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 import os
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import UserSerializer, DriverProfileSerializer
-from .models import DriverProfile
+from .serializers import (
+    UserSerializer, 
+    DriverProfileSerializer, 
+    DocumentSerializer, 
+    DutyStatusLogSerializer
+)
+from .models import User, DriverProfile, Document, DutyStatusLog
+from .permissions import IsDriver, IsOwnerOrReadOnly
 
 
 def health_check(request):
@@ -156,23 +166,102 @@ class DriverProfileView(generics.RetrieveUpdateAPIView):
             return self.request.user.driver_profile
         except DriverProfile.DoesNotExist:
             return DriverProfile.objects.create(user=self.request.user)
-
     def patch(self, request, *args, **kwargs):
         """Update the driver profile."""
         return self.partial_update(request, *args, **kwargs)
 
 
+class DocumentViewSet(mixins.CreateModelMixin,
+                     mixins.RetrieveModelMixin,
+                     mixins.DestroyModelMixin,
+                     mixins.ListModelMixin,
+                     viewsets.GenericViewSet):
+    """ViewSet for managing driver documents."""
+    serializer_class = DocumentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsDriver]
+    parser_classes = [MultiPartParser, JSONParser]
+
+    def get_queryset(self):
+        return Document.objects.filter(driver=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(driver=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """Download a document file."""
+        document = self.get_object()
+        return FileResponse(document.file)
+
+
+class DutyStatusLogViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing duty status logs."""
+    serializer_class = DutyStatusLogSerializer
+    permission_classes = [permissions.IsAuthenticated, IsDriver]
+    filterset_fields = ['status', 'start_time', 'end_time']
+    search_fields = ['location', 'notes', 'inspection_notes']
+    ordering_fields = ['start_time', 'end_time', 'created_at']
+    ordering = ['-start_time']
+
+    def get_queryset(self):
+        return DutyStatusLog.objects.filter(driver=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(driver=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def current_status(self, request):
+        """Get the current duty status of the driver."""
+        current_log = self.get_queryset().filter(end_time__isnull=True).first()
+        if current_log:
+            serializer = self.get_serializer(current_log)
+            return Response(serializer.data)
+        return Response({
+            'status': 'off_duty',
+            'message': 'No active duty status found.'
+        })
+
+    @action(detail=True, methods=['post'])
+    def end_status(self, request, pk=None):
+        """End the current duty status."""
+        duty_status = self.get_object()
+        if duty_status.end_time is not None:
+            return Response(
+                {'error': 'This duty status has already ended.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        duty_status.end_time = timezone.now()
+        duty_status.save()
+        serializer = self.get_serializer(duty_status)
+        return Response(serializer.data)
+
+
 class CheckAuthView(APIView):
-    """Check if user is authenticated."""
+    """Check if user is authenticated and return user data."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, format=None):
         """Return user data if authenticated."""
+        user = request.user
+        driver_profile = None
+        
+        if hasattr(user, 'driver_profile'):
+            driver_profile = {
+                'license_number': user.driver_profile.license_number,
+                'license_expiry': user.driver_profile.license_expiry,
+                'current_vehicle': user.driver_profile.current_vehicle,
+                'current_trailer': user.driver_profile.current_trailer,
+            }
+        
         return Response({
             'isAuthenticated': True,
             'user': {
-                'id': request.user.id,
-                'email': request.user.email,
-                'name': request.user.name,
+                'id': user.id,
+                'email': user.email,
+                'name': user.name,
+                'is_driver': user.is_driver,
+                'is_dispatcher': user.is_dispatcher,
+                'driver_profile': driver_profile,
             }
         })

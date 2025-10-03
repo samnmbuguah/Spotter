@@ -129,8 +129,8 @@ export const tripService = {
   },
 };
 
-// HOS Log services
-export const logService = {
+// HOS Log services - defined first to avoid circular dependencies
+const logService = {
   async getLogEntries() {
     const response = await api.get('/logs/entries/');
     return response.data.results || response.data || [];
@@ -181,6 +181,9 @@ export const logService = {
     return response.data;
   },
 };
+
+// Export logService after definition
+export { logService };
 
 // Location services
 export const locationService = {
