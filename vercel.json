@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "buildCommand": "./vercel_build.sh",
+  "outputDirectory": "frontend/build",
+  "installCommand": "echo 'No install command needed'",
   "builds": [
     {
       "src": "api/wsgi.py",
@@ -23,13 +26,6 @@
           "**/.pytest_cache/**"
         ]
       }
-    },
-    {
-      "src": "build_files.sh",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles"
-      }
     }
   ],
   "routes": [
@@ -41,8 +37,5 @@
       "src": "/(.*)",
       "dest": "/api/wsgi.py"
     }
-  ],
-  "buildCommand": "./vercel_build.sh",
-  "outputDirectory": "frontend/build",
-  "installCommand": "echo 'No install command needed'"
+  ]
 }
