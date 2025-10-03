@@ -50,7 +50,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, addToast]);
+  }, [user]);
 
   // Load current trip
   const loadCurrentTrip = useCallback(async () => {
@@ -70,7 +70,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, addToast]);
+  }, [user]);
 
   // Initialize
   useEffect(() => {
@@ -133,7 +133,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [pendingDutyStatus, addToast]);
+  }, [pendingDutyStatus]);
   
   // Handle time update
   const handleTimeUpdate = useCallback(async (newTime: string) => {
@@ -159,7 +159,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dutyStatus.status, addToast]);
+  }, [dutyStatus.status]);
 
   // Render the component
   if (loading) {
