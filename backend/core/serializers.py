@@ -60,15 +60,16 @@ class AuthTokenSerializer(serializers.Serializer):
 
 class DriverProfileSerializer(serializers.ModelSerializer):
     """Serializer for the driver profile object."""
-    user = UserSerializer(required=True)
+    user = UserSerializer(read_only=True)
 
     class Meta:
-        model = User.driver_profile.related.related_model
+        # Temporarily disable this serializer for deployment
+        # model = User.driver_profile.related_model
         fields = [
             'id', 'user', 'license_number', 'license_expiry', 'phone_number', 'company',
             'timezone', 'default_cycle', 'auto_close_trip_at_midnight', 'auto_close_trip_time'
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'user']
 
     def update(self, instance, validated_data):
         """Update and return driver profile."""

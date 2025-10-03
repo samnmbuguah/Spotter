@@ -10,9 +10,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 
-from .models import Location, RouteStop, Trip, LogEntry, DailyLog, Violation
-from .serializers import LocationSerializer, RouteStopSerializer, TripSerializer, TripListSerializer, DailyLogSerializer, DailyLogListSerializer,
-    ViolationSerializer, LogEntryCreateSerializer
+from .models import LogEntry, DailyLog, Violation
+from .serializers import LogEntrySerializer, DailyLogSerializer, DailyLogListSerializer, ViolationSerializer, LogEntryCreateSerializer
 
 
 class LogEntryListCreateView(generics.ListCreateAPIView):
