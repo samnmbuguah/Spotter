@@ -143,9 +143,14 @@ const DriverDashboard: React.FC = () => {
     try {
       setLoading(true);
       await logService.updateDutyStatusTime(dutyStatus.status, newTime);
+
+      // Convert time-only string back to ISO format for consistent state management
+      const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+      const isoTimeString = `${today}T${newTime}`;
+
       setDutyStatus(prev => ({
         ...prev,
-        startTime: newTime,
+        startTime: isoTimeString,
       }));
       setShowTimeEditDialog(false);
       addToast({
@@ -195,11 +200,39 @@ const DriverDashboard: React.FC = () => {
             </div>
             <button
               onClick={() => {
-                // Extract time portion from ISO string if needed
+                // Extract time portion from ISO string if needed and ensure seconds are included
                 const timeValue = dutyStatus.startTime;
-                const timeOnly = timeValue && timeValue.includes('T')
-                  ? timeValue.split('T')[1].substring(0, 5) // Extract HH:MM from ISO format
-                  : timeValue || '';
+                let timeOnly = '';
+
+                if (timeValue && timeValue.includes('T')) {
+                  // Extract HH:MM:SS from ISO format or add seconds if missing
+                  const timePart = timeValue.split('T')[1];
+                  if (timePart) {
+                    const parts = timePart.split(':');
+                    if (parts.length === 2) {
+                      timeOnly = parts[0] + ':' + parts[1] + ':00'; // Add seconds if missing
+                    } else if (parts.length === 3) {
+                      timeOnly = timePart; // Already has seconds
+                    } else {
+                      timeOnly = timePart + ':00'; // Fallback
+                    }
+                  }
+                } else if (timeValue) {
+                  // Handle non-ISO time format (fallback)
+                  if (timeValue.includes(':')) {
+                    const parts = timeValue.split(':');
+                    if (parts.length === 2) {
+                      timeOnly = parts[0] + ':' + parts[1] + ':00'; // Add seconds if missing
+                    } else {
+                      timeOnly = timeValue; // Already has seconds or use as-is
+                    }
+                  } else {
+                    timeOnly = timeValue + ':00';
+                  }
+                } else {
+                  timeOnly = '';
+                }
+
                 setEditedTime(timeOnly);
                 setShowTimeEditDialog(true);
               }}

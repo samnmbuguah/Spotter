@@ -19,7 +19,9 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
       return [0, 0];
     }
 
-    const [h, m] = timeValue.split(':').map(Number);
+    const parts = timeValue.split(':').map(Number);
+    const h = parts[0] || 0;
+    const m = parts[1] || 0;
     const hours = isNaN(h) || h < 0 || h > 23 ? 0 : h;
     const minutes = isNaN(m) || m < 0 || m > 59 ? 0 : m;
 
@@ -29,12 +31,12 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
   const [hours, minutes] = parseTime(value);
   
   const handleHourChange = (newHour: number) => {
-    const newTime = `${String(newHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const newTime = `${String(newHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
     onChange(newTime);
   };
   
   const handleMinuteChange = (newMinute: number) => {
-    const newTime = `${String(hours).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}`;
+    const newTime = `${String(hours).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}:00`;
     onChange(newTime);
   };
   
@@ -43,7 +45,9 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
       return 'Invalid time';
     }
 
-    const [h, m] = time.split(':').map(Number);
+    const parts = time.split(':').map(Number);
+    const h = parts[0] || 0;
+    const m = parts[1] || 0;
 
     // Validate that we have valid numbers
     if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
