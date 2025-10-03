@@ -1,0 +1,20 @@
+// Test script to check Google Maps API key accessibility
+const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+console.log('Google Maps API Key:', API_KEY ? 'SET' : 'NOT SET');
+
+if (API_KEY) {
+  // Test if we can load the Google Maps API
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,geometry`;
+  script.onload = () => {
+    console.log('✅ Google Maps API loaded successfully');
+    console.log('Available libraries:', window.google ? 'Google Maps API available' : 'API not available');
+  };
+  script.onerror = () => {
+    console.error('❌ Failed to load Google Maps API');
+  };
+  document.head.appendChild(script);
+} else {
+  console.error('❌ REACT_APP_GOOGLE_MAPS_API_KEY not found');
+}
