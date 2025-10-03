@@ -1,6 +1,8 @@
 from django.http import JsonResponse
 from django.db import connection
 from django.core.cache import cache
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 import os
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
@@ -85,10 +87,18 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
 
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 
 class LoginView(APIView):
     """Login user and return JWT tokens."""
     permission_classes = [permissions.AllowAny]
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def post(self, request):
         from django.contrib.auth import authenticate
