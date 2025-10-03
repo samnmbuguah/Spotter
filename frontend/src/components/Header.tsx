@@ -88,10 +88,10 @@ const Header: React.FC = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-200'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-800'
+                        : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
@@ -151,7 +151,7 @@ const Header: React.FC = () => {
                     to={item.path}
                     className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors ${
                       isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-200'
+                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-800'
                         : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
                   >
