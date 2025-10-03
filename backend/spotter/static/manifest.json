@@ -1,0 +1,16 @@
+{
+  "name": "Spotter HOS",
+  "short_name": "Spotter HOS",
+  "description": "FMCSA Hours of Service compliance tool for truck drivers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f2937",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

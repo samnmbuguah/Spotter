@@ -4,6 +4,7 @@ django-cors-headers==4.9.0
 djangorestframework-simplejwt==5.5.1
 psycopg2-binary==2.9.10
 python-dotenv==1.1.1
+whitenoise==6.7.0
 pytz==2024.1
 
 # Testing dependencies

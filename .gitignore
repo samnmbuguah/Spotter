@@ -123,3 +123,6 @@ new-full-stack-dev-assessment.docx
 .env.production
 .env.development
 .env.test
+
+backend/static
+vercel.json
