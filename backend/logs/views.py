@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from datetime import date, timedelta
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -89,7 +89,7 @@ def certify_daily_log(request, pk):
         )
 
     daily_log.is_certified = True
-    daily_log.certified_at = timezone.now()
+    daily_log.certified_at = django_timezone.now()
     daily_log.certified_by = request.user
     daily_log.save()
 
