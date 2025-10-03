@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from datetime import date, datetime
 
 
 class LogEntry(models.Model):
@@ -13,7 +14,7 @@ class LogEntry(models.Model):
     ]
 
     driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='hos_log_entries')
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.now().date())
     start_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
     duty_status = models.CharField(max_length=30, choices=DUTY_STATUS_CHOICES)
@@ -35,6 +36,13 @@ class LogEntry(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __setattr__(self, name, value):
+        # Ensure date field always contains date objects, not datetime objects
+        if name == 'date' and value is not None and not isinstance(value, date):
+            if isinstance(value, datetime):
+                value = value.date()
+        super().__setattr__(name, value)
 
     def __str__(self):
         return f"{self.driver.name} - {self.date} - {self.duty_status}"
@@ -85,7 +93,7 @@ class LogEntry(models.Model):
 class DailyLog(models.Model):
     """Model for daily HOS summary logs"""
     driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='hos_daily_logs')
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.now().date())
 
     # 24-hour period summary
     total_on_duty_hours = models.DecimalField(max_digits=4, decimal_places=2, default=0)
@@ -114,6 +122,13 @@ class DailyLog(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __setattr__(self, name, value):
+        # Ensure date field always contains date objects, not datetime objects
+        if name == 'date' and value is not None and not isinstance(value, date):
+            if isinstance(value, datetime):
+                value = value.date()
+        super().__setattr__(name, value)
 
     def __str__(self):
         return f"{self.driver.name} - {self.date}"

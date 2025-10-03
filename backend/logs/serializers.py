@@ -1,10 +1,28 @@
 from rest_framework import serializers
 from .models import LogEntry, DailyLog, Violation
+from datetime import date, datetime
+
+
+class DateField(serializers.DateField):
+    """Custom DateField that handles datetime values by converting them to date objects"""
+
+    def to_representation(self, value):
+        # Handle case where value is a datetime object
+        if isinstance(value, datetime):
+            value = value.date()
+        return super().to_representation(value)
+
+    def to_internal_value(self, value):
+        # Handle case where input value is a datetime object
+        if isinstance(value, datetime):
+            value = value.date()
+        return super().to_internal_value(value)
 
 
 class LogEntrySerializer(serializers.ModelSerializer):
     """Serializer for LogEntry model"""
     current_duration = serializers.SerializerMethodField()
+    date = DateField()  # Use custom DateField
 
     class Meta:
         model = LogEntry
@@ -29,6 +47,7 @@ class DailyLogSerializer(serializers.ModelSerializer):
     """Serializer for DailyLog model"""
     log_entries = LogEntrySerializer(many=True, read_only=True)
     is_compliant = serializers.SerializerMethodField()
+    date = DateField()  # Use custom DateField
 
     class Meta:
         model = DailyLog
@@ -53,6 +72,7 @@ class DailyLogSerializer(serializers.ModelSerializer):
 class DailyLogListSerializer(serializers.ModelSerializer):
     """Simplified serializer for daily log listings"""
     is_compliant = serializers.SerializerMethodField()
+    date = DateField()  # Use custom DateField
 
     class Meta:
         model = DailyLog
@@ -80,6 +100,7 @@ class ViolationSerializer(serializers.ModelSerializer):
 
 class LogEntryCreateSerializer(serializers.ModelSerializer):
     """Specialized serializer for creating log entries"""
+    date = DateField()  # Use custom DateField
 
     class Meta:
         model = LogEntry
@@ -88,7 +109,7 @@ class LogEntryCreateSerializer(serializers.ModelSerializer):
             'location', 'notes', 'latitude', 'longitude', 'total_hours',
             'vehicle_info', 'trailer_info', 'odometer_start', 'odometer_end'
         ]
-        read_only_fields = ['id', 'total_hours']
+        read_only_fields = ['id']
 
     def validate(self, data):
         """Validate that end_time is after start_time"""
