@@ -36,7 +36,7 @@ export const TimeEditDialog: React.FC<TimeEditDialogProps> = ({
   const setPresetTime = (minutesToSubtract: number) => {
     const currentDateTime = new Date();
     const newDateTime = new Date(currentDateTime.getTime() - (minutesToSubtract * 60 * 1000));
-    const timeString = format(newDateTime, 'HH:mm');
+    const timeString = format(newDateTime, 'HH:mm:ss');
     setTime(timeString);
   };
 
