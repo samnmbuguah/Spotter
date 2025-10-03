@@ -36,10 +36,11 @@ export function ToastProvider({ children }: ToastProviderProps) {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prevToasts) => [...prevToasts, { ...toast, id }]);
 
-    if (toast.duration && toast.duration > 0) {
+    const duration = toast.duration ?? 4000; // Default to 4 seconds if not provided
+    if (duration && duration > 0) {
       setTimeout(() => {
         removeToast(id);
-      }, toast.duration);
+      }, duration);
     }
   }, [removeToast]);
 
