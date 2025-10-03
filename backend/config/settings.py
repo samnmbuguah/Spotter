@@ -117,7 +117,7 @@ TEMPLATES = [
 
 # WSGI Application - different for local vs Vercel deployment
 if os.environ.get('VERCEL'):
-    WSGI_APPLICATION = 'api.wsgi.app'
+    WSGI_APPLICATION = 'api.wsgi.application'
     # Vercel deployment optimizations
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key-for-vercel')
@@ -134,6 +134,28 @@ if os.environ.get('VERCEL'):
     # Disable static file collection for Vercel (handled by separate build)
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     WHITENOISE_USE_FINDERS = False
+
+    # Minimal middleware for serverless
+    MIDDLEWARE = [
+        'corsheaders.middleware.CorsMiddleware',
+        'django.middleware.common.CommonMiddleware',
+    ]
+
+    # Minimal installed apps for serverless
+    INSTALLED_APPS = [
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'rest_framework',
+        'corsheaders',
+        'rest_framework_simplejwt',
+        'rest_framework_simplejwt.token_blacklist',
+        'core.apps.CoreConfig',
+        'logs.apps.LogsConfig',
+        'trips.apps.TripsConfig',
+    ]
 
 else:
     WSGI_APPLICATION = 'config.wsgi.application'
