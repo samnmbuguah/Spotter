@@ -174,12 +174,12 @@ export const useLocationTracking = () => {
 
   useEffect(() => {
     return () => {
-      // Cleanup on unmount
+      // Cleanup on unmount - use current state.watchId value when cleanup runs
       if (state.watchId !== null) {
         navigator.geolocation.clearWatch(state.watchId);
       }
     };
-  }, [state.watchId]);
+  }, []); // Remove state.watchId dependency to prevent infinite loop
 
   return {
     ...state,
