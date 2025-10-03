@@ -42,6 +42,17 @@
     "test": "jest",
     "eject": "react-scripts eject"
   },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended"
+    ],
+    "env": {
+      "browser": true,
+      "es6": true,
+      "jest": true,
+      "node": true
+    }
+  },
   "browserslist": {
     "production": [
       ">0.2%",
