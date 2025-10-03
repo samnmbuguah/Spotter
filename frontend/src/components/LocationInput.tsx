@@ -14,6 +14,7 @@ interface LocationInputProps {
   required?: boolean;
   autoDetect?: boolean;
   showCoordinates?: boolean;
+  disableForm?: boolean; // New prop to disable form wrapper
 }
 
 const LocationInput: React.FC<LocationInputProps> = ({
@@ -25,6 +26,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
   required = false,
   autoDetect = true,
   showCoordinates = true,
+  disableForm = false, // New prop with default false for backward compatibility
 }) => {
   const [searchQuery, setSearchQuery] = useState(initialValue);
   const [isLoading, setIsLoading] = useState(false);
@@ -166,53 +168,106 @@ const LocationInput: React.FC<LocationInputProps> = ({
         </label>
       )}
 
-      <form onSubmit={handleSubmit} className="relative">
+      {disableForm ? (
+        // Render without form wrapper when used inside another form
         <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleInputChange}
-            placeholder={placeholder}
-            className="block w-full pl-10 pr-32 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-            disabled={isLoading}
-          />
-
-          {/* Location pin icon */}
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-
-          {/* Right side buttons */}
-          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-            <button
-              type="button"
-              onClick={detectCurrentLocation}
-              className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-md mr-1"
-              title="Use current location"
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleInputChange}
+              placeholder={placeholder}
+              className="block w-full pl-10 pr-32 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
               disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Crosshair className="h-5 w-5" />
-              )}
-            </button>
+            />
 
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors"
-              disabled={isLoading || !searchQuery.trim()}
-            >
-              {isLoading ? 'Searching...' : 'Search'}
-            </button>
+            {/* Location pin icon */}
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+
+            {/* Right side buttons */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <button
+                type="button"
+                onClick={detectCurrentLocation}
+                className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-md mr-1"
+                title="Use current location"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Crosshair className="h-5 w-5" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors"
+                disabled={isLoading || !searchQuery.trim()}
+              >
+                {isLoading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
           </div>
+
+          {/* Show coordinates above input when available */}
+          {showCoordinates && coordinates && (
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            </div>
+          )}
         </div>
+      ) : (
+        // Original form wrapper for standalone usage
+        <form onSubmit={handleSubmit} className="relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleInputChange}
+              placeholder={placeholder}
+              className="block w-full pl-10 pr-32 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+              disabled={isLoading}
+            />
 
-        {/* Show coordinates above input when available */}
-        {showCoordinates && coordinates && (
-          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            {/* Location pin icon */}
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+
+            {/* Right side buttons */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <button
+                type="button"
+                onClick={detectCurrentLocation}
+                className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-md mr-1"
+                title="Use current location"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Crosshair className="h-5 w-5" />
+                )}
+              </button>
+
+              <button
+                type="submit"
+                className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors"
+                disabled={isLoading || !searchQuery.trim()}
+              >
+                {isLoading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
           </div>
-        )}
-      </form>
+
+          {/* Show coordinates above input when available */}
+          {showCoordinates && coordinates && (
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            </div>
+          )}
+        </form>
+      )}
 
       <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
         <MapPin className="h-3.5 w-3.5 mr-1" />

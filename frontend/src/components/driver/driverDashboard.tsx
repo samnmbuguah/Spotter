@@ -115,14 +115,17 @@ const DriverDashboard: React.FC = () => {
       // Convert LocationData to string format for API
       const locationString = formData.location ? formData.location.address : '';
 
-      await logService.updateLogEntry(0, {
+      // Create new log entry instead of updating non-existent entry
+      await logService.createLogEntry({
         ...pendingDutyStatus,
         location: locationString,
         latitude: formData.location?.lat,
         longitude: formData.location?.lng,
-        ...formData,
-        odometerStart: formData.odometerStart ? parseFloat(formData.odometerStart) : undefined,
-        odometerEnd: formData.odometerEnd ? parseFloat(formData.odometerEnd) : undefined,
+        notes: formData.notes,
+        vehicle_info: formData.vehicleInfo,
+        trailer_info: formData.trailerInfo,
+        odometer_start: formData.odometerStart ? parseFloat(formData.odometerStart) : undefined,
+        odometer_end: formData.odometerEnd ? parseFloat(formData.odometerEnd) : undefined,
       });
 
       setDutyStatus(pendingDutyStatus);
