@@ -39,6 +39,23 @@ class LogEntry(models.Model):
     def __str__(self):
         return f"{self.driver.name} - {self.date} - {self.duty_status}"
 
+    def get_current_duration(self):
+        """Get the current duration, including for ongoing entries"""
+        if self.end_time:
+            # Entry has ended, use calculated total_hours
+            return float(self.total_hours)
+        else:
+            # Entry is ongoing, calculate from start_time to now
+            start_datetime = timezone.datetime.combine(self.date, self.start_time)
+            now = timezone.now()
+
+            # Handle case where current time is before start time (shouldn't happen but safety check)
+            if now < start_datetime:
+                return 0.0
+
+            duration_seconds = (now - start_datetime).total_seconds()
+            return duration_seconds / 3600
+
     def save(self, *args, **kwargs):
         # Calculate total hours if end_time is provided
         if self.start_time and self.end_time:
@@ -100,14 +117,15 @@ class DailyLog(models.Model):
         self.total_sleeper_berth_hours = 0
 
         for entry in entries:
+            current_duration = entry.get_current_duration()
             if entry.duty_status == 'driving':
-                self.total_driving_hours += float(entry.total_hours)
+                self.total_driving_hours += current_duration
             elif entry.duty_status == 'on_duty_not_driving':
-                self.total_on_duty_hours += float(entry.total_hours)
+                self.total_on_duty_hours += current_duration
             elif entry.duty_status == 'off_duty':
-                self.total_off_duty_hours += float(entry.total_hours)
+                self.total_off_duty_hours += current_duration
             elif entry.duty_status == 'sleeper_berth':
-                self.total_sleeper_berth_hours += float(entry.total_hours)
+                self.total_sleeper_berth_hours += current_duration
 
         return self
 

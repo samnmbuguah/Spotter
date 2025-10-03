@@ -12,6 +12,7 @@ interface LogEntry {
   location: string;
   notes?: string;
   total_hours: number;
+  current_duration: number;
   latitude?: number;
   longitude?: number;
 }
@@ -219,7 +220,7 @@ DAILY SUMMARY:
 
 LOG ENTRIES:
 ${entries.map((entry, index) =>
-  `${index + 1}. ${DUTY_STATUS_LABELS[entry.duty_status]} - ${formatTime(entry.start_time)}${entry.end_time ? ` to ${formatTime(entry.end_time)}` : ''} (${formatDuration(entry.total_hours || 0)})${entry.location ? ` at ${entry.location}` : ''}${entry.notes ? ` - ${entry.notes}` : ''}`
+  `${index + 1}. ${DUTY_STATUS_LABELS[entry.duty_status]} - ${formatTime(entry.start_time)}${entry.end_time ? ` to ${formatTime(entry.end_time)}` : ''} (${formatDuration(entry.current_duration || 0)})${entry.location ? ` at ${entry.location}` : ''}${entry.notes ? ` - ${entry.notes}` : ''}`
 ).join('\n')}
 
 Generated on: ${new Date().toLocaleString()}
@@ -361,7 +362,7 @@ Generated on: ${new Date().toLocaleString()}
                         </span>
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-                        {formatDuration(entry.total_hours || 0)}
+                        {formatDuration(entry.current_duration || 0)}
                       </div>
                       {entry.location && (
                         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -428,7 +429,7 @@ Generated on: ${new Date().toLocaleString()}
                       {entry.location || '-'}
                     </td>
                     <td className="py-2 px-3 text-gray-900 dark:text-white font-medium">
-                      {formatDuration(entry.total_hours || 0)}
+                      {formatDuration(entry.current_duration || 0)}
                     </td>
                     <td className="py-2 px-3 text-gray-600 dark:text-gray-300">
                       {entry.notes || '-'}
