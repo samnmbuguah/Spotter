@@ -6,15 +6,36 @@
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.11",
-        "installCommand": "pip install -r requirements.txt && pip install -r backend/requirements.txt",
-        "buildCommand": "cd frontend && npm install && npm run build && cp -r build/* ../backend/static/ && cd ../backend && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+        "maxLambdaSize": "15mb",
+        "includeFiles": [
+          "backend//*",
+          "!backend/pycache/",
+          "!backend//pycache/**",
+          "!backend//migrations/**"
+        ]
+      }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
       }
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/wsgi.py"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/backend/static/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "api/wsgi.py"
+      "dest": "/backend/static/index.html"
     }
-  ]
+  ],
+  "buildCommand": "./vercel_build.sh"
 }
