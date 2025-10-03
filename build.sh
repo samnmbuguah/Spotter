@@ -2,9 +2,21 @@
 
 echo "Starting build process..."
 
-# Install Python dependencies
-echo "Installing Python dependencies..."
+# Upgrade pip and install core packages first
+echo "Upgrading pip and installing core packages..."
+pip install --upgrade pip setuptools wheel
+
+# Install Django and core dependencies first
+echo "Installing Django and core dependencies..."
+pip install Django==5.2.7 djangorestframework==3.16.1 django-cors-headers==4.9.0
+
+# Install remaining dependencies
+echo "Installing remaining dependencies..."
 pip install -r backend/requirements.txt
+
+# Verify Django installation
+echo "Verifying Django installation..."
+python -c "import django; print(f'Django version: {django.get_version()}')"
 
 # Build React frontend
 echo "Building React frontend..."
