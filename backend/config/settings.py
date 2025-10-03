@@ -118,6 +118,23 @@ TEMPLATES = [
 # WSGI Application - different for local vs Vercel deployment
 if os.environ.get('VERCEL'):
     WSGI_APPLICATION = 'api.wsgi.app'
+    # Vercel deployment optimizations
+    DEBUG = False
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key-for-vercel')
+    ALLOWED_HOSTS = ['*']  # Vercel provides the domain
+
+    # Disable database for Vercel (serverless functions don't persist data)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',  # Use in-memory database for serverless
+        }
+    }
+
+    # Disable static file collection for Vercel (handled by separate build)
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    WHITENOISE_USE_FINDERS = False
+
 else:
     WSGI_APPLICATION = 'config.wsgi.application'
 
