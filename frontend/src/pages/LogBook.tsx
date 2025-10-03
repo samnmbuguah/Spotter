@@ -124,7 +124,9 @@ const LogBook: React.FC = () => {
   const generateDailyLog = async () => {
     setLoading(true);
     try {
-      await logService.generateDailyLog(selectedDate);
+      console.log('Generating daily log for date:', selectedDate);
+      const response = await logService.generateDailyLog(selectedDate);
+      console.log('Daily log generated successfully:', response);
       await loadLogData();
       addToast({
         title: 'Daily Log Generated',
@@ -134,7 +136,7 @@ const LogBook: React.FC = () => {
       console.error('Error generating daily log:', error);
       addToast({
         title: 'Error',
-        description: 'Failed to generate daily log',
+        description: 'Failed to generate daily log. Please check the console for details.',
         variant: 'destructive',
       });
     } finally {
@@ -164,25 +166,16 @@ const LogBook: React.FC = () => {
   };
 
   const exportToPDF = async () => {
-    if (!todaysDailyLog) {
-      addToast({
-        title: 'No Log to Export',
-        description: 'Please generate a daily log first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       // Call the backend API to generate proper PDF
-      const pdfBlob = await logService.downloadDailyLogPDF(selectedDate);
+      const pdfBlob = await logService.downloadDailyLogPDF();
 
       // Create download link
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `hos-log-${selectedDate}.pdf`;
+      link.download = `hos-log-latest.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -196,7 +189,7 @@ const LogBook: React.FC = () => {
       console.error('Error exporting PDF:', error);
       addToast({
         title: 'Error',
-        description: 'Failed to export PDF',
+        description: 'Failed to export PDF. Please generate a daily log first.',
         variant: 'destructive',
       });
     } finally {
@@ -252,21 +245,19 @@ Generated on: ${new Date().toLocaleString()}
               <button
                 onClick={generateDailyLog}
                 disabled={loading}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
+                className="px-4 py-2 bg-white hover:bg-gray-700 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
               >
                 <FileText className="w-4 h-4" />
                 <span>Generate Log</span>
               </button>
-              {todaysDailyLog && (
-                <button
-                  onClick={exportToPDF}
-                  disabled={loading}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Export PDF</span>
-                </button>
-              )}
+              <button
+                onClick={exportToPDF}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export PDF</span>
+              </button>
             </div>
           </div>
 
