@@ -2,21 +2,21 @@
 
 set -e  # Exit on any error
 
-echo "Starting Vercel build process..."
+echo "Starting optimized Vercel build process..."
 
-# Install Python dependencies for the backend API
+# Install Python dependencies for the backend API only
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
-# Build frontend
+# Build frontend with production optimizations
 echo "Building frontend..."
 cd frontend
 npm ci --production=false
-npm run build
+REACT_APP_API_URL=/api npm run build
 cd ..
 
-# Create a simple wsgi.py file for Vercel (no database operations needed)
-echo "Creating Vercel WSGI configuration..."
+# Create a minimal wsgi.py file for Vercel (no database operations needed)
+echo "Creating optimized Vercel WSGI configuration..."
 cat > api/wsgi.py << 'EOL'
 import os
 import sys
@@ -29,6 +29,31 @@ if backend_path not in sys.path:
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 os.environ.setdefault('VERCEL', '1')  # Signal we're on Vercel
+
+# Minimal Django setup for serverless
+from django.conf import settings
+if not settings.configured:
+    from django.conf import settings
+    settings.configure(
+        DEBUG=False,
+        SECRET_KEY=os.environ.get('SECRET_KEY', 'fallback-key'),
+        ALLOWED_HOSTS=['*'],
+        DATABASES={'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}},
+        INSTALLED_APPS=[
+            'django.contrib.auth',
+            'django.contrib.contenttypes',
+            'rest_framework',
+            'corsheaders',
+            'core',
+            'logs',
+        ],
+        MIDDLEWARE=[
+            'corsheaders.middleware.CorsMiddleware',
+            'django.middleware.common.CommonMiddleware',
+        ],
+        CORS_ALLOW_ALL_ORIGINS=True,
+        USE_TZ=True,
+    )
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
