@@ -14,7 +14,7 @@ class LogEntry(models.Model):
     ]
 
     driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='hos_log_entries')
-    date = models.DateField(default=timezone.now().date())
+    date = models.DateField(default=timezone.now)
     start_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
     duty_status = models.CharField(max_length=30, choices=DUTY_STATUS_CHOICES)
@@ -93,7 +93,7 @@ class LogEntry(models.Model):
 class DailyLog(models.Model):
     """Model for daily HOS summary logs"""
     driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='hos_daily_logs')
-    date = models.DateField(default=timezone.now().date())
+    date = models.DateField(default=timezone.now)
 
     # 24-hour period summary
     total_on_duty_hours = models.DecimalField(max_digits=4, decimal_places=2, default=0)

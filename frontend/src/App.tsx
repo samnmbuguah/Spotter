@@ -10,6 +10,7 @@ import Header from './components/Header';
 import DashboardSkeleton from './components/DashboardSkeleton';
 import { queryClient } from './config/queryClient';
 import { useAuthStore } from './stores/useAuthStore';
+import { ToastContainer } from 'react-toastify';
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -96,6 +97,7 @@ function App() {
           </Router>
           </AuthProvider>
         </ToastProvider>
+        <ToastContainer autoClose={4000} />
       </QueryClientProvider>
     </ErrorBoundary>
   );

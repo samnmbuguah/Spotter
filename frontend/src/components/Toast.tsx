@@ -44,7 +44,7 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'info', onClose }) => {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, 5000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [onClose]);
