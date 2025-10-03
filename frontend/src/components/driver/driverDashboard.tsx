@@ -24,7 +24,7 @@ const DriverDashboard: React.FC = () => {
   const [showDutyDialog, setShowDutyDialog] = useState<boolean>(false);
   const [pendingDutyStatus, setPendingDutyStatus] = useState<DutyStatusData | null>(null);
   const [showTimeEditDialog, setShowTimeEditDialog] = useState<boolean>(false);
-  const [editedTime, setEditedTime] = useState<string>('');
+  const [editedTime, setEditedTime] = useState<string>(new Date().toTimeString().substring(0, 5));
   
   // Removed duplicate form state as it's managed by DutyStatusDialog
 
@@ -179,6 +179,7 @@ const DriverDashboard: React.FC = () => {
         <DutyStatusControls
           currentStatus={dutyStatus.status}
           onStatusChange={handleDutyStatusChange}
+          loading={loading}
         />
         
         <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -194,7 +195,12 @@ const DriverDashboard: React.FC = () => {
             </div>
             <button
               onClick={() => {
-                setEditedTime(dutyStatus.startTime);
+                // Extract time portion from ISO string if needed
+                const timeValue = dutyStatus.startTime;
+                const timeOnly = timeValue && timeValue.includes('T')
+                  ? timeValue.split('T')[1].substring(0, 5) // Extract HH:MM from ISO format
+                  : timeValue || '';
+                setEditedTime(timeOnly);
                 setShowTimeEditDialog(true);
               }}
               className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
@@ -235,7 +241,7 @@ const DriverDashboard: React.FC = () => {
           onSubmit={confirmDutyStatusChange}
           status={pendingDutyStatus.status}
           loading={loading}
-          currentLocation={currentLocation}
+          currentLocation={currentLocation || undefined}
         />
       )}
       
