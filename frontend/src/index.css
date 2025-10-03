@@ -42,8 +42,8 @@
     @apply bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-gray-100;
   }
 
-  /* Buttons */
-  button, .btn {
+  /* Buttons - Only apply default styles to buttons that don't have custom styling */
+  button.btn-primary, .btn {
     @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors;
   }
 

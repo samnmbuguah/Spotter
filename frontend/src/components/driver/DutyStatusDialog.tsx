@@ -5,10 +5,11 @@ import LocationInput from '../LocationInput';
 interface DutyStatusDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (formData: DutyStatusFormData) => Promise<void>;
+  onSubmit: (formData: DutyStatusFormData, existingEntryId?: number) => Promise<void>;
   status: DutyStatus;
   loading: boolean;
   currentLocation?: { lat: number; lng: number };
+  existingEntryId?: number; // Add this to handle editing existing entries
 }
 
 export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
@@ -18,6 +19,7 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
   status,
   loading,
   currentLocation,
+  existingEntryId,
 }) => {
   const [formData, setFormData] = useState<DutyStatusFormData>({
     location: null,
@@ -43,7 +45,8 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const entryId = existingEntryId; // Capture the value for the callback
+    onSubmit(formData, entryId);
   };
 
   const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
@@ -83,7 +86,8 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
             />
           </div>
 
-          {status === 'driving' && (
+          {/* Vehicle and Trailer Info - Required for all status changes from off_duty */}
+          {(status !== 'off_duty') && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -95,23 +99,57 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
                   value={formData.vehicleInfo}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
-                  required={status === 'driving'}
+                  placeholder="Enter vehicle identification"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Odometer Start
+                  Trailer Info
                 </label>
                 <input
-                  type="number"
-                  name="odometerStart"
-                  value={formData.odometerStart}
+                  type="text"
+                  name="trailerInfo"
+                  value={formData.trailerInfo}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
-                  required={status === 'driving'}
+                  placeholder="Enter trailer identification"
                 />
               </div>
             </>
+          )}
+
+          {/* Odometer fields based on status change */}
+          {(status === 'driving') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Odometer Start
+              </label>
+              <input
+                type="number"
+                name="odometerStart"
+                value={formData.odometerStart}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
+                placeholder="Enter starting odometer reading"
+                required={status === 'driving'}
+              />
+            </div>
+          )}
+
+          {(status === 'off_duty') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Odometer End
+              </label>
+              <input
+                type="number"
+                name="odometerEnd"
+                value={formData.odometerEnd}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
+                placeholder="Enter ending odometer reading"
+              />
+            </div>
           )}
 
           <div>

@@ -41,26 +41,37 @@ class LogEntry(models.Model):
 
     def get_current_duration(self):
         """Get the current duration, including for ongoing entries"""
-        if self.end_time:
-            # Entry has ended, use calculated total_hours
-            return float(self.total_hours)
-        else:
-            # Entry is ongoing, calculate from start_time to now
-            start_datetime = timezone.datetime.combine(self.date, self.start_time)
-            now = timezone.now()
+        try:
+            if self.end_time:
+                # Entry has ended, use calculated total_hours
+                return float(self.total_hours or 0)
+            else:
+                # Entry is ongoing, calculate from start_time to now
+                if not self.start_time:
+                    return 0.0
+                start_datetime = timezone.datetime.combine(self.date, self.start_time)
+                # Make start_datetime timezone-aware
+                start_datetime = timezone.make_aware(start_datetime)
+                now = timezone.now()
 
-            # Handle case where current time is before start time (shouldn't happen but safety check)
-            if now < start_datetime:
-                return 0.0
+                # Handle case where current time is before start time (shouldn't happen but safety check)
+                if now < start_datetime:
+                    return 0.0
 
-            duration_seconds = (now - start_datetime).total_seconds()
-            return duration_seconds / 3600
+                duration_seconds = (now - start_datetime).total_seconds()
+                return duration_seconds / 3600
+        except (AttributeError, TypeError, ValueError):
+            # Handle any data issues gracefully
+            return 0.0
 
     def save(self, *args, **kwargs):
         # Calculate total hours if end_time is provided
         if self.start_time and self.end_time:
             start_datetime = timezone.datetime.combine(self.date, self.start_time)
             end_datetime = timezone.datetime.combine(self.date, self.end_time)
+            # Make both datetimes timezone-aware for comparison
+            start_datetime = timezone.make_aware(start_datetime)
+            end_datetime = timezone.make_aware(end_datetime)
             if end_datetime < start_datetime:
                 end_datetime += timezone.timedelta(days=1)
             self.total_hours = (end_datetime - start_datetime).total_seconds() / 3600
