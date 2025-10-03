@@ -9,7 +9,7 @@ import { DutyStatusDialog } from './DutyStatusDialog';
 import { TimeEditDialog } from './TimeEditDialog';
 
 const DriverDashboard: React.FC = () => {
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const { user } = useAuthStore();
   const { currentLocation, startTracking, stopTracking } = useLocationTracking();
   
@@ -42,7 +42,7 @@ const DriverDashboard: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading duty status:', error);
-      toast({
+      addToast({
         title: 'Error',
         description: 'Failed to load duty status',
         variant: 'destructive',
@@ -50,7 +50,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, addToast]);
 
   // Load current trip
   const loadCurrentTrip = useCallback(async () => {
@@ -62,7 +62,7 @@ const DriverDashboard: React.FC = () => {
       setCurrentTrip(trip || null);
     } catch (error) {
       console.error('Error loading current trip:', error);
-      toast({
+      addToast({
         title: 'Error',
         description: 'Failed to load current trip',
         variant: 'destructive',
@@ -70,7 +70,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, addToast]);
 
   // Initialize
   useEffect(() => {
@@ -119,13 +119,13 @@ const DriverDashboard: React.FC = () => {
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
       
-      toast({
+      addToast({
         title: 'Status Updated',
         description: `You are now ${pendingDutyStatus.status.replace(/_/g, ' ')}`,
       });
     } catch (error) {
       console.error('Error confirming duty status:', error);
-      toast({
+      addToast({
         title: 'Update Failed',
         description: 'Failed to update duty status',
         variant: 'destructive',
@@ -133,7 +133,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [pendingDutyStatus, toast]);
+  }, [pendingDutyStatus, addToast]);
   
   // Handle time update
   const handleTimeUpdate = useCallback(async (newTime: string) => {
@@ -145,13 +145,13 @@ const DriverDashboard: React.FC = () => {
         startTime: newTime,
       }));
       setShowTimeEditDialog(false);
-      toast({
+      addToast({
         title: 'Success',
         description: 'Duty status time updated successfully',
       });
     } catch (error) {
       console.error('Error updating time:', error);
-      toast({
+      addToast({
         title: 'Error',
         description: 'Failed to update duty status time',
         variant: 'destructive',
@@ -159,7 +159,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dutyStatus.status, toast]);
+  }, [dutyStatus.status, addToast]);
 
   // Render the component
   if (loading) {
