@@ -1,44 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useToast } from '../ui/use-toast';
-import { tripService, logService } from '../../services/api';
-import { useLocationTracking } from '../../hooks/useLocationTracking';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { logService } from '../../services/api';
+import { useToast } from '../../components/ui/use-toast';
+import { useLocationTracking } from '../../hooks/useLocationTracking';
 import { DutyStatus, DutyStatusData, DutyStatusFormData, Trip } from './types';
 import { DutyStatusControls } from './DutyStatusControls';
 import { DutyStatusDialog } from './DutyStatusDialog';
 import { TimeEditDialog } from './TimeEditDialog';
 
-export const DriverDashboard: React.FC = () => {
+const DriverDashboard: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuthStore();
   const { currentLocation, startTracking, stopTracking } = useLocationTracking();
   
-  // State
+  // State management
   const [loading, setLoading] = useState<boolean>(false);
-  const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
-  const [dutyStatus, setDutyStatus] = useState<DutyStatusData>(() => ({
+  const [dutyStatus, setDutyStatus] = useState<DutyStatusData>({
     status: 'off_duty',
     startTime: new Date().toISOString(),
-  }));
-  
-  // Dialog states
+  });
+  const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
   const [showDutyDialog, setShowDutyDialog] = useState<boolean>(false);
   const [pendingDutyStatus, setPendingDutyStatus] = useState<DutyStatusData | null>(null);
   const [showTimeEditDialog, setShowTimeEditDialog] = useState<boolean>(false);
   const [editedTime, setEditedTime] = useState<string>('');
-  const [showDurationEditDialog] = useState<boolean>(false);
   
-  // Form data
-  const [, setFormData] = useState<DutyStatusFormData>({
-    location: '',
-    notes: '',
-    vehicleInfo: '',
-    trailerInfo: '',
-    odometerStart: '',
-    odometerEnd: '',
-  });
+  // Removed duplicate form state as it's managed by DutyStatusDialog
 
-  // Load current duty status and trip
+  // Load current duty status
   const loadCurrentDutyStatus = useCallback(async () => {
     if (!user) return;
     
@@ -49,7 +38,6 @@ export const DriverDashboard: React.FC = () => {
         setDutyStatus(prev => ({
           ...prev,
           ...status,
-          startTime: status.startTime || prev.startTime,
         }));
       }
     } catch (error) {
@@ -70,68 +58,57 @@ export const DriverDashboard: React.FC = () => {
     
     try {
       setLoading(true);
-      const trip = await tripService.getCurrentTrip();
-      setCurrentTrip(trip);
+      const trip = await logService.getCurrentTrip();
+      setCurrentTrip(trip || null);
     } catch (error) {
       console.error('Error loading current trip:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  // Update location in log
-  const updateLocationInLog = useCallback(async (location: { latitude: number; longitude: number }) => {
-    if (!user || !dutyStatus.status) return;
-    
-    try {
-      // Use updateLogEntry or appropriate method from logService
-      await logService.updateLogEntry(0, {
-        status: dutyStatus.status,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Error updating location in log:', error);
-    }
-  }, [user, dutyStatus.status]);
-
-  // Handle duty status change
-  const handleDutyStatusChange = useCallback(async (newStatus: DutyStatus) => {
-    try {
-      setLoading(true);
-      
-      if (currentLocation) {
-        await updateLocationInLog(currentLocation);
-      }
-      
-      setPendingDutyStatus({
-        ...dutyStatus,
-        status: newStatus,
-        startTime: new Date().toISOString(),
-      });
-      
-      setShowDutyDialog(true);
-    } catch (error) {
-      console.error('Error updating duty status:', error);
       toast({
-        title: 'Status Update Failed',
-        description: 'Failed to update your duty status.',
+        title: 'Error',
+        description: 'Failed to load current trip',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [currentLocation, dutyStatus, updateLocationInLog, toast]);
+  }, [user, toast]);
 
+  // Initialize
+  useEffect(() => {
+    loadCurrentDutyStatus();
+    loadCurrentTrip();
+  }, [loadCurrentDutyStatus, loadCurrentTrip]);
+
+  // Start/stop location tracking based on duty status
+  useEffect(() => {
+    if (!dutyStatus) return;
+    
+    if (dutyStatus.status === 'driving') {
+      startTracking();
+    } else {
+      stopTracking();
+    }
+    
+    return () => {
+      stopTracking();
+    };
+  }, [dutyStatus, startTracking, stopTracking]);
+  
+  // Handle duty status change
+  const handleDutyStatusChange = useCallback((status: DutyStatus) => {
+    setPendingDutyStatus({
+      status,
+      startTime: new Date().toISOString(),
+    });
+    setShowDutyDialog(true);
+  }, []);
+  
   // Confirm duty status change
-  const confirmDutyStatusChange = async (formData: DutyStatusFormData) => {
+  const confirmDutyStatusChange = useCallback(async (formData: DutyStatusFormData) => {
     if (!pendingDutyStatus) return;
     
     try {
       setLoading(true);
       
-      // Use updateLogEntry or appropriate method from logService
       await logService.updateLogEntry(0, {
         ...pendingDutyStatus,
         ...formData,
@@ -142,16 +119,13 @@ export const DriverDashboard: React.FC = () => {
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
       
-      // Use the toast function from the context
-      const { toast: showToast } = useToast();
-      showToast({
+      toast({
         title: 'Status Updated',
         description: `You are now ${pendingDutyStatus.status.replace(/_/g, ' ')}`,
       });
     } catch (error) {
       console.error('Error confirming duty status:', error);
-      const { toast: showToast } = useToast();
-      showToast({
+      toast({
         title: 'Update Failed',
         description: 'Failed to update duty status',
         variant: 'destructive',
@@ -159,34 +133,39 @@ export const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Initialize
-  useEffect(() => {
-    loadCurrentDutyStatus();
-    loadCurrentTrip();
-  }, [loadCurrentDutyStatus, loadCurrentTrip]);
-
-  // Update location when it changes
-  useEffect(() => {
-    if (currentLocation && dutyStatus.status) {
-      updateLocationInLog(currentLocation);
+  }, [pendingDutyStatus, toast]);
+  
+  // Handle time update
+  const handleTimeUpdate = useCallback(async (newTime: string) => {
+    try {
+      setLoading(true);
+      await logService.updateDutyStatusTime(dutyStatus.status, newTime);
+      setDutyStatus(prev => ({
+        ...prev,
+        startTime: newTime,
+      }));
+      setShowTimeEditDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Duty status time updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating time:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update duty status time',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
-  }, [currentLocation, dutyStatus.status, updateLocationInLog]);
+  }, [dutyStatus.status, toast]);
 
-  // Start/stop location tracking based on duty status
-  useEffect(() => {
-    if (dutyStatus.status === 'driving') {
-      startTracking();
-    } else {
-      stopTracking();
-    }
-    
-    return () => {
-      stopTracking();
-    };
-  }, [dutyStatus.status, startTracking, stopTracking]);
-
+  // Render the component
+  if (loading) {
+    return <div className="p-4">Loading...</div>;
+  }
+  
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Driver Dashboard</h1>
@@ -196,7 +175,6 @@ export const DriverDashboard: React.FC = () => {
         <h2 className="text-lg font-semibold mb-4">Duty Status</h2>
         <DutyStatusControls
           currentStatus={dutyStatus.status}
-          loading={loading}
           onStatusChange={handleDutyStatusChange}
         />
         
@@ -226,12 +204,14 @@ export const DriverDashboard: React.FC = () => {
       
       {/* Current Trip */}
       {currentTrip && (
-        <div className="mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2">Current Trip</h2>
-          <p>{currentTrip.name}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Status: <span className="capitalize">{currentTrip.status}</span>
-          </p>
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4">Current Trip</h2>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h3 className="font-medium">{currentTrip.name}</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Status: {currentTrip.status}
+            </p>
+          </div>
         </div>
       )}
       
@@ -260,45 +240,11 @@ export const DriverDashboard: React.FC = () => {
       <TimeEditDialog
         isOpen={showTimeEditDialog}
         onClose={() => setShowTimeEditDialog(false)}
-        onSave={async (newTime) => {
-          try {
-            setLoading(true);
-            await logService.updateDutyStatusTime(dutyStatus.status, newTime);
-            setDutyStatus(prev => ({
-              ...prev,
-              startTime: newTime,
-            }));
-            setShowTimeEditDialog(false);
-          } catch (error) {
-            console.error('Error updating time:', error);
-            toast({
-              title: 'Update Failed',
-              description: 'Failed to update time',
-              variant: 'destructive',
-            });
-          } finally {
-            setLoading(false);
-          }
-        }}
+        onSave={handleTimeUpdate}
         currentTime={editedTime}
         loading={loading}
         title="Edit Start Time"
       />
-      
-      {/* Duration Edit Dialog - Temporarily disabled until implemented */}
-      {showDurationEditDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-            <p>Duration edit functionality will be implemented soon.</p>
-            <button 
-              onClick={() => {}}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

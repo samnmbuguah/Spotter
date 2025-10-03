@@ -1,17 +1,7 @@
-import axios, { AxiosResponse, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import axios, { InternalAxiosRequestConfig } from 'axios';
 
 // API base URL - adjust based on your Django server
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
-
-// Types
-type ErrorResponse = {
-  message: string;
-  statusCode: number;
-  error?: string;
-  errors?: Record<string, string[]>;
-};
 
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
