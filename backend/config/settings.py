@@ -83,7 +83,11 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'api.wsgi.app'
+# WSGI Application - different for local vs Vercel deployment
+if os.environ.get('VERCEL'):
+    WSGI_APPLICATION = 'api.wsgi.app'
+else:
+    WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
