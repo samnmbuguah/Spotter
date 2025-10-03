@@ -72,11 +72,13 @@ const DriverDashboard: React.FC = () => {
     }
   }, [user]);
 
-  // Initialize
+  // Initialize - Load data when user changes
   useEffect(() => {
-    loadCurrentDutyStatus();
-    loadCurrentTrip();
-  }, [loadCurrentDutyStatus, loadCurrentTrip]);
+    if (user) {
+      loadCurrentDutyStatus();
+      loadCurrentTrip();
+    }
+  }, [user]); // Only depend on user, not the functions
 
   // Start/stop location tracking based on duty status
   useEffect(() => {
