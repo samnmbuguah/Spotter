@@ -112,16 +112,4 @@ venv/
 .DS_Store
 
 
-# Assessment files
-blank-paper-log.png
-fmcsa-hos-395-drivers-guide-to-hos-2022-04-28-0.pdf
-new-full-stack-dev-assessment.docx
-
-# Environment files
-.env
-.env.local
-.env.production
-.env.development
-.env.test
-
 backend/static
