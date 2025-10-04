@@ -27,9 +27,12 @@ def health_check(request):
     Comprehensive health check endpoint for the Spotter application.
     Returns status of database, cache, and external services.
     """
+    from django.db import connection
+    from django.utils import timezone
+
     health_status = {
         'status': 'healthy',
-        'timestamp': connection.ops.date_truncate_sql('second', 'NOW()'),
+        'timestamp': timezone.now().isoformat(),
         'services': {}
     }
 
@@ -37,9 +40,11 @@ def health_check(request):
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
+            # Detect database type from connection
+            db_vendor = connection.vendor
             health_status['services']['database'] = {
                 'status': 'healthy',
-                'type': 'postgresql'
+                'type': db_vendor
             }
     except Exception as e:
         health_status['status'] = 'unhealthy'
