@@ -40,8 +40,8 @@ services:
   # Django Backend
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
+      context: .
+      dockerfile: ./backend/Dockerfile.prod
     container_name: spotter_backend
     restart: unless-stopped
     environment:
@@ -49,8 +49,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-django-insecure-dev-key-change-in-production}
       DEBUG: 0
-      DJANGO_SETTINGS_MODULE: spotter.settings
-      ALLOWED_HOSTS: backend,localhost,127.0.0.1
+      DJANGO_SETTINGS_MODULE: config.settings
+      ALLOWED_HOSTS: backend,localhost,127.0.0.1,0.0.0.0,34.180.15.16
     volumes:
       - static_volume:/home/app/web/staticfiles
       - ./backend/media:/home/app/web/media
@@ -78,7 +78,7 @@ services:
     container_name: spotter_frontend
     restart: unless-stopped
     expose:
-      - 80
+      - 3000
     depends_on:
       - backend
     networks:

@@ -1,18 +1,17 @@
 import os
 from django.urls import path, include, re_path
-from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
+from django.views.generic import TemplateView
 
 urlpatterns = [
-    path('api/v1/', include([
-        path('auth/', include('core.urls')),
-        path('trips/', include('trips.urls')),
-        path('logs/', include('logs.urls')),
+    path('api/', include([
+        path('v1/auth/', include('core.urls')),
+        path('v1/trips/', include('trips.urls')),
+        path('v1/logs/', include('logs.urls')),
     ])),
 ]
-
 # Serve React static files (always enabled for both development and production)
 urlpatterns += [
     re_path(r'^static/(?P<path>.*)$', serve, {
