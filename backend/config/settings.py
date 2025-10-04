@@ -123,7 +123,7 @@ if os.environ.get('VERCEL'):
     SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key-for-vercel')
     ALLOWED_HOSTS = ['*']  # Vercel provides the domain
 
-    # Disable database for Vercel (serverless functions don't persist data)
+    # Use SQLite for Vercel deployment (serverless functions)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -161,15 +161,35 @@ else:
     WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# Database configuration
+# Use SQLite for both development and production (unless explicitly overridden)
+USE_SQLITE = os.getenv('USE_SQLITE', 'True') == 'True'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if USE_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+elif os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB', 'spotter'),
+            'USER': os.environ.get('POSTGRES_USER', 'spotter'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'spotter_secure_password'),
+            'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 AUTH_USER_MODEL = 'core.User'

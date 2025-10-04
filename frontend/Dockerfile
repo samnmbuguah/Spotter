@@ -1,30 +1,22 @@
-# Build stage
-FROM node:18-alpine as build
+# Production stage - React production build served by development server
+FROM node:18-alpine AS production
+
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (use npm ci for production)
-RUN npm ci --only=production
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build the app
+# Build the React app
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Expose port 3000 (React dev server default)
+EXPOSE 3000
 
-# Copy built assets from build stage
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
-EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start production server (serve the built files)
+CMD ["npm", "run", "serve"]
