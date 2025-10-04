@@ -36,6 +36,8 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.vercel.app,localhost,127.0.0.1').sp
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -165,14 +167,8 @@ else:
 # Use SQLite for both development and production (unless explicitly overridden)
 USE_SQLITE = os.getenv('USE_SQLITE', 'True') == 'True'
 
-if USE_SQLITE:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-elif os.environ.get('DATABASE_URL'):
+if os.environ.get('DATABASE_URL'):
+    # Use PostgreSQL when DATABASE_URL is explicitly provided
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -181,6 +177,13 @@ elif os.environ.get('DATABASE_URL'):
             'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'spotter_secure_password'),
             'HOST': os.environ.get('POSTGRES_HOST', 'db'),
             'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
+    }
+elif USE_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 else:
