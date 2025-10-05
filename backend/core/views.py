@@ -1,9 +1,11 @@
 from django.http import JsonResponse, FileResponse, HttpResponse
 from django.db import connection, transaction
-from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.views.decorators.csrf import csrf_exempt, csrf_protect, get_token, ensure_csrf_cookie
+from django.middleware.csrf import get_token as csrf_get_token
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 import os
 import json
 from rest_framework import generics, permissions, status, serializers
@@ -203,11 +205,8 @@ class CreateUserView(APIView):
 class LoginView(APIView):
     """Login user and return JWT tokens."""
     permission_classes = [permissions.AllowAny]
-    parser_classes = [JSONParser]
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+    authentication_classes = []  # No authentication required for login
 
     def post(self, request):
         from django.contrib.auth import authenticate
@@ -231,8 +230,8 @@ class LoginView(APIView):
 
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
-
-        return Response({
+        
+        response = Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
             'user': {
@@ -241,6 +240,18 @@ class LoginView(APIView):
                 'name': user.name,
             }
         })
+        
+        # Set CSRF token in the response cookie
+        response.set_cookie(
+            key='csrftoken',
+            value=get_token(request),
+            httponly=False,  # Allow JavaScript to access the cookie
+            secure=not settings.DEBUG,  # Only send over HTTPS in production
+            samesite='Lax',  # Allow cross-site requests
+            max_age=60 * 60 * 24 * 30,  # 30 days
+        )
+        
+        return response
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
@@ -330,6 +341,28 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 #         return Response(serializer.data)
 
 
+class CsrfTokenView(APIView):
+    """Get CSRF token for the session."""
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    
+    @method_decorator(ensure_csrf_cookie)
+    def get(self, request):
+        """Return CSRF token in a cookie and as JSON response."""
+        token = csrf_get_token(request)
+        response = JsonResponse({'csrfToken': token})
+        response.set_cookie(
+            'csrftoken',
+            token,
+            max_age=60 * 60 * 24 * 7,  # 1 week
+            domain=os.getenv('CSRF_COOKIE_DOMAIN', None),
+            secure=not settings.DEBUG,
+            httponly=False,
+            samesite='Lax'
+        )
+        return response
+
+
 class CheckAuthView(APIView):
     """Check if user is authenticated and return user data."""
     permission_classes = [permissions.IsAuthenticated]
@@ -342,16 +375,11 @@ class CheckAuthView(APIView):
         if hasattr(user, 'driver_profile'):
             driver_profile = {
                 'license_number': user.driver_profile.license_number,
-                'license_expiry': user.driver_profile.license_expiry,
-                'current_vehicle': user.driver_profile.current_vehicle,
-                'current_trailer': user.driver_profile.current_trailer,
             }
-        
 class LogoutView(APIView):
     """Logout user and blacklist refresh token."""
     permission_classes = [permissions.IsAuthenticated]
 
-    @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
@@ -360,16 +388,14 @@ class LogoutView(APIView):
         try:
             refresh_token = request.data.get('refresh')
             if refresh_token:
-                # Blacklist the refresh token
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-
-            return Response({
-                'message': 'Successfully logged out'
-            })
+            response = Response(status=status.HTTP_205_RESET_CONTENT)
+            response.delete_cookie('csrftoken')
+            return response
         except Exception as e:
-            # Return success even if token blacklisting fails
-            # The client-side cleanup will still happen
-            return Response({
-                'message': 'Logged out successfully'
-            })
+            logger.error(f"Logout error: {str(e)}")
+            return Response(
+                {"detail": "Error during logout"},
+                status=status.HTTP_400_BAD_REQUEST
+            )

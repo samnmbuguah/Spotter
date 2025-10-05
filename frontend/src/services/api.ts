@@ -3,18 +3,71 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 // API base URL - use relative path for proper nginx proxying
 const API_BASE_URL = '/api/v1';
 
+// Function to get CSRF token from cookies
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// Function to ensure we have a valid CSRF token
+export const ensureCSRFToken = async (): Promise<string> => {
+  const csrfToken = getCookie('csrftoken');
+  if (csrfToken) return csrfToken;
+  
+  // If we don't have a token, fetch one from the server
+  const response = await axios.get('/api/auth/csrf/', {
+    withCredentials: true,
+    baseURL: '/',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  });
+  
+  const newToken = response.data.csrfToken || getCookie('csrftoken');
+  if (!newToken) {
+    throw new Error('Failed to retrieve CSRF token');
+  }
+  
+  return newToken;
+};
+
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
   timeout: 10000, // 10 seconds
-  withCredentials: false, // Don't send cookies by default for API calls
+  withCredentials: true, // Enable sending cookies with requests
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
 });
 
-  // Request interceptor to add auth token and proper headers
+// Request interceptor to add auth token, CSRF token, and proper headers
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Get CSRF token from cookies
+    const csrfToken = getCookie('csrftoken');
+    
+    // Add CSRF token to headers for all non-GET requests
+    if (csrfToken && config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+      config.headers['X-CSRFToken'] = csrfToken;
+    }
+
+    // Add authorization token if it exists
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers = config.headers || {};
@@ -62,7 +115,23 @@ api.interceptors.response.use(
 // Authentication services
 export const authService = {
   async login(email: string, password: string) {
-    const response = await api.post('/auth/login/', { email, password });
+    // Ensure we have a valid CSRF token
+    const csrfToken = await ensureCSRFToken();
+    
+    // Make the login request with credentials
+    const response = await api.post(
+      '/auth/login/', 
+      { email, password },
+      {
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+        xsrfCookieName: 'csrftoken',
+        xsrfHeaderName: 'X-CSRFToken',
+      }
+    );
     return response.data;
   },
 

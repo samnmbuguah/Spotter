@@ -19,6 +19,9 @@ router = DefaultRouter()
 
 # API v1 URL patterns
 v1_patterns = [
+    # CSRF Token
+    path('csrf/', views.CsrfTokenView.as_view(), name='csrf_token'),
+    
     # User management
     path('register/', csrf_exempt(views.CreateUserView.as_view()), name='register'),
     path('login/', views.LoginView.as_view(), name='login'),

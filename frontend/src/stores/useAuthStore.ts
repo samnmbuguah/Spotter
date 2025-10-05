@@ -20,10 +20,12 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  checkAuth: () => Promise<void>;
   setLoading: (isLoading: boolean) => void;
+  getCsrfToken: () => Promise<string | null>;
+  ensureCsrfToken: () => Promise<string | null>;
+  login: (email: string, password: string) => Promise<ExtendedUser>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   updateUserPreferences: (preferences: Partial<UserPreferences>) => Promise<void>;
 }
 
@@ -34,26 +36,84 @@ interface AuthStorage {
   isLoading: boolean;
 }
 
-const useAuthStore = create<AuthState>()(
+// Define the store type
+// The AuthStore type is the same as AuthState, but we define it separately
+// to make it clear that it's the store type that includes all actions
+type AuthStore = AuthState;
+
+const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: true,
+            // Function to get CSRF token from cookies or fetch a new one
+      getCsrfToken: async () => {
+        // First try to get from cookies
+        const cookieValue = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('csrftoken='))
+          ?.split('=')[1];
+        
+        if (cookieValue) return cookieValue;
+        
+        // If not in cookies, fetch a new one
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/csrf/`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            return data.csrfToken || null;
+          }
+        } catch (error) {
+          console.error('Error fetching CSRF token:', error);
+        }
+        
+        return null;
+      },
+      
+      // Function to ensure we have a valid CSRF token for authenticated requests
+      ensureCsrfToken: async () => {
+        return get().getCsrfToken();
+      },
+      
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true });
+          
+          // Ensure we have a valid CSRF token
+          const csrfToken = await get().ensureCsrfToken();
+          
+          if (!csrfToken) {
+            console.error('CSRF token is required but not available');
+            throw new Error('Unable to establish secure connection. Please refresh the page and try again.');
+          }
+
+          // Prepare headers
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+          };
+          
+          // Include credentials (cookies) with the request
+          const credentials: RequestCredentials = 'include';
+          
 
           // Call the API login endpoint
           const response = await fetch(`${API_BASE_URL}/auth/login/`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers,
             body: JSON.stringify({ email, password }),
-            credentials: 'include',
+            credentials,
           });
 
           if (!response.ok) {
@@ -148,22 +208,82 @@ const useAuthStore = create<AuthState>()(
           const token = localStorage.getItem('access_token');
 
           if (!token) {
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false
-            });
-            return;
+            set({ isAuthenticated: false, isLoading: false });
+            return false;
           }
+          
+          // Ensure we have a valid CSRF token
+          const csrfToken = await get().ensureCsrfToken();
+          
+          if (!csrfToken) {
+            console.error('CSRF token is required but not available');
+            throw new Error('Unable to establish secure connection. Please refresh the page and try again.');
+          }
+          
+          // Prepare headers
+          const headers: HeadersInit = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+          };
+          
+          // Verify the token with the backend
+          let response = await fetch(`${API_BASE_URL}/auth/verify/`, {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify({ token }),
+          });
 
-          // Verify token and get user data
-          const response = await fetch(`${API_BASE_URL}/auth/profile/`, {
+          if (!response.ok) {
+            // If we get a 403, it might be due to CSRF, try to get a new token and retry once
+            if (response.status === 403) {
+              // Clear the existing CSRF token and get a new one
+              document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+              const newCsrfToken = await get().ensureCsrfToken();
+              
+              if (newCsrfToken) {
+                headers['X-CSRFToken'] = newCsrfToken;
+                const retryResponse = await fetch(`${API_BASE_URL}/auth/verify/`, {
+                  method: 'POST',
+                  headers,
+                  credentials: 'include',
+                  body: JSON.stringify({ token }),
+                });
+                
+                if (!retryResponse.ok) {
+                  throw new Error('Token verification failed after CSRF retry');
+                }
+                response = retryResponse;
+              } else {
+                throw new Error('Failed to get new CSRF token');
+              }
+            } else {
+              throw new Error('Token verification failed');
+            }
+          }
+          
+          // If we get here, token verification was successful
+          const userResponse = await fetch(`${API_BASE_URL}/auth/profile/`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Accept': 'application/json',
             },
             credentials: 'include',
           });
+
+          if (userResponse.ok) {
+            const user = await userResponse.json();
+            set({
+              user,
+              token,
+              isAuthenticated: true,
+              isLoading: false
+            });
+            return true;
+          }
 
           if (response.ok) {
             const user = await response.json();
@@ -173,6 +293,7 @@ const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false
             });
+            return true;
           } else {
             // If token is invalid, try to refresh it
             const refreshToken = localStorage.getItem('refresh_token');
@@ -192,31 +313,34 @@ const useAuthStore = create<AuthState>()(
                   const { access } = await refreshResponse.json();
                   localStorage.setItem('access_token', access);
 
-                  // Retry getting user data with new token
-                  const userResponse = await fetch(`${API_BASE_URL}/auth/profile/`, {
-                    headers: {
-                      'Authorization': `Bearer ${access}`,
-                      'Accept': 'application/json',
-                    },
-                    credentials: 'include',
-                  });
-
-                  if (userResponse.ok) {
-                    const user = await userResponse.json();
-                    set({
-                      user,
-                      token: access,
-                      isAuthenticated: true,
-                      isLoading: false
+                  try {
+                    const profileResponse = await fetch(`${API_BASE_URL}/auth/profile/`, {
+                      headers: {
+                        'Authorization': `Bearer ${access}`,
+                        'Accept': 'application/json',
+                      },
+                      credentials: 'include',
                     });
-                    return;
+
+                    if (profileResponse.ok) {
+                      const user = await profileResponse.json();
+                      set({
+                        user,
+                        token: access,
+                        isAuthenticated: true,
+                        isLoading: false
+                      });
+                      return true;
+                    }
+                  } catch (error) {
+                    console.error('Failed to fetch user data after token refresh:', error);
                   }
                 }
-              } catch (refreshError) {
-                console.error('Token refresh failed:', refreshError);
+              } catch (error) {
+                console.error('Failed to refresh token:', error);
               }
             }
-
+            
             // If we get here, either refresh failed or no refresh token
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
@@ -226,6 +350,7 @@ const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               isLoading: false
             });
+            return false;
           }
         } catch (error) {
           console.error('Auth check error:', error);
@@ -285,18 +410,18 @@ const useAuthStore = create<AuthState>()(
           throw error;
         }
       },
-    })
-  ),
-  {
-    name: 'auth-storage',
-    storage: createJSONStorage(() => localStorage),
-    partialize: (state) => ({
-      user: state.user,
-      token: state.token,
-      isAuthenticated: state.isAuthenticated,
-      isLoading: false, // Don't persist loading state
-    } as AuthStorage),
-  }
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state: AuthState) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+        isLoading: false // Don't persist loading state
+      })
+    }
+  )
 );
 
 // Initialize auth state when the store is loaded

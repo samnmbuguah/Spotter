@@ -28,8 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Force debug mode for now to get detailed error messages
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Logging configuration - simplified to use console only for now
 LOGGING = {
@@ -75,10 +74,30 @@ LOGGING = {
     },
 }
 
-ALLOWED_HOSTS = ['*']  # Allow all hosts for now to test
+# Security settings
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,34.180.15.16,exponentialpotential.space,www.exponentialpotential.space').split(',')
+
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins in development
+CORS_ALLOW_ALL_ORIGINS = False  # More secure to specify allowed origins
 CORS_ALLOW_CREDENTIALS = True  # Allow credentials for cross-origin requests
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+CORS_ALLOWED_ORIGINS = [
+    'https://exponentialpotential.space',
+    'https://www.exponentialpotential.space',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Trusted origins for CSRF
 CSRF_TRUSTED_ORIGINS = [
@@ -93,11 +112,20 @@ CSRF_TRUSTED_ORIGINS = [
     "https://34.180.15.16",
 ]
 
-# Ensure CSRF cookie is sent with every request
+# CSRF settings
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the CSRF cookie
-CSRF_COOKIE_SECURE = True  # Only send over HTTPS in production
+CSRF_COOKIE_SECURE = not DEBUG  # Only send over HTTPS in production
 CSRF_COOKIE_SAMESITE = 'Lax'  # Allow cross-site requests
+CSRF_COOKIE_PATH = '/'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_DOMAIN = '.exponentialpotential.space' if not DEBUG else None
+
+# Session settings
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Session settings
 SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS in production
