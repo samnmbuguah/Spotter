@@ -33,7 +33,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
 
-  // Detect current location
+  // Detect current location with fallback mechanism
   const detectCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser.');
@@ -42,6 +42,7 @@ const LocationInput: React.FC<LocationInputProps> = ({
 
     setIsLoading(true);
 
+    // First try with high accuracy
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
@@ -66,13 +67,72 @@ const LocationInput: React.FC<LocationInputProps> = ({
         }
       },
       (error) => {
-        console.error('Error getting location:', error);
-        alert('Unable to retrieve your location. Please enter it manually.');
-        setIsLoading(false);
+        console.error('High accuracy location error:', error);
+        
+        // Handle specific error types
+        let errorMessage = 'Unable to retrieve your location. Please enter it manually.';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location permissions in your browser settings and try again.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable. Please check your device settings and try again.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out. Trying with lower accuracy...';
+            // Try with lower accuracy as fallback
+            setTimeout(() => {
+              navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                  try {
+                    const { latitude, longitude } = position.coords;
+                    setCoordinates({ lat: latitude, lng: longitude });
+
+                    const address = await getAddressFromCoords(latitude, longitude);
+
+                    setSearchQuery(address);
+                    setHasAutoDetected(true);
+
+                    onLocationSelect({
+                      address,
+                      lat: latitude,
+                      lng: longitude,
+                    });
+                  } catch (error) {
+                    console.error('Error getting address:', error);
+                    alert('Found your location but could not get the address. Please enter it manually.');
+                  } finally {
+                    setIsLoading(false);
+                  }
+                },
+                (fallbackError) => {
+                  console.error('Fallback location error:', fallbackError);
+                  setIsLoading(false);
+                  alert('Unable to retrieve your location even with lower accuracy. Please enter it manually.');
+                },
+                {
+                  enableHighAccuracy: false,
+                  timeout: 15000,
+                  maximumAge: 60000 // Accept cached location up to 1 minute old
+                }
+              );
+            }, 1000);
+            return;
+          default:
+            errorMessage = 'An unknown error occurred while retrieving your location.';
+            break;
+        }
+        
+        // For non-timeout errors, show immediately
+        if (error.code !== error.TIMEOUT) {
+          alert(errorMessage);
+          setIsLoading(false);
+        }
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000, // Increased timeout
         maximumAge: 0
       }
     );
