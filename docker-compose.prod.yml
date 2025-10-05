@@ -96,8 +96,8 @@ services:
       - static_volume:/home/app/web/staticfiles:ro
       - ./backend/media:/home/app/web/media:ro
       - ./.well-known:/home/app/.well-known:ro
-      - ./nginx/ssl/certificate.crt:/etc/nginx/ssl/certificate.crt:ro
-      - ./nginx/ssl/private.key:/etc/nginx/ssl/private.key:ro
+      - /etc/letsencrypt/archive/exponentialpotential.space/fullchain1.pem:/etc/nginx/ssl/certificate.crt:ro
+      - /etc/letsencrypt/archive/exponentialpotential.space/privkey1.pem:/etc/nginx/ssl/private.key:ro
     depends_on:
       - backend
       - frontend
