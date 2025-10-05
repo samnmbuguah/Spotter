@@ -16,9 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+# Create non-root user and logs directory
 RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --create-home appuser
+    useradd --uid 1000 --gid 1000 --create-home appuser && \
+    mkdir -p /var/log/django && \
+    chown -R appuser:appuser /var/log/django && \
+    chmod 755 /var/log/django
 
 # Copy requirements first for better caching
 COPY requirements.txt .

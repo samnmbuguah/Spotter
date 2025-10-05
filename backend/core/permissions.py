@@ -1,4 +1,17 @@
 from rest_framework import permissions
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+
+class BypassCSRFForRegistration(permissions.BasePermission):
+    """
+    Custom permission to bypass CSRF checks for registration endpoint.
+    """
+    def has_permission(self, request, view):
+        # Skip CSRF check for registration endpoint
+        if request.path == '/api/v1/auth/register/':
+            return True
+        return True
 
 
 class IsDriver(permissions.BasePermission):

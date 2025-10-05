@@ -1,0 +1,48 @@
+# Python base image
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PIP_NO_CACHE_DIR 1
+ENV PIP_DISABLE_PIP_VERSION_CHECK 1
+ENV USE_SQLITE=True
+
+# Set work directory with correct ownership
+WORKDIR /app
+
+# Create non-root user first to avoid permission issues
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid 1000 --create-home appuser
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories with correct ownership
+RUN mkdir -p /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app/staticfiles /app/media
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project
+COPY . .
+
+# Change ownership of the app directory
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Collect static files
+RUN python manage.py collectstatic --noinput
+
+# Run migrations
+RUN python manage.py migrate
+
+# Command to run the application
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

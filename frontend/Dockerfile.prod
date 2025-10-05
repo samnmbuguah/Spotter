@@ -1,6 +1,6 @@
 ###########
-# Production stage - React production build served by development server
-FROM node:18-alpine AS production
+# Build stage
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -16,9 +16,19 @@ COPY . .
 # Build the React app
 RUN npm run build
 
-# Expose port 3000 (React dev server default)
-EXPOSE 3000
+###########
+# Production stage - Serve static files with Nginx
+FROM nginx:stable-alpine
 
-# Start production server (serve the built files)
-CMD ["npm", "run", "serve"]
+# Copy built assets from builder
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Copy nginx config
+COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
+EXPOSE 80
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
 

@@ -28,21 +28,81 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# Force debug mode for now to get detailed error messages
+DEBUG = True
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'exponentialpotential.space,www.exponentialpotential.space,34.180.15.16,.vercel.app,localhost,127.0.0.1').split(',')
+# Logging configuration - simplified to use console only for now
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
 
+ALLOWED_HOSTS = ['*']  # Allow all hosts for now to test
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins in development
+CORS_ALLOW_CREDENTIALS = True  # Allow credentials for cross-origin requests
+
+# Trusted origins for CSRF
+CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://exponentialpotential.space",
     "https://exponentialpotential.space",
+    "https://www.exponentialpotential.space",
     "http://34.180.15.16",
     "https://34.180.15.16",
 ]
+
+# Ensure CSRF cookie is sent with every request
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the CSRF cookie
+CSRF_COOKIE_SECURE = True  # Only send over HTTPS in production
+CSRF_COOKIE_SAMESITE = 'Lax'  # Allow cross-site requests
+
+# Session settings
+SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS in production
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cross-site requests
 
 # Allow credentials for cross-origin requests (needed for cookies/tokens)
 CORS_ALLOW_CREDENTIALS = True
@@ -101,7 +161,8 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',  # Keep the default CSRF middleware
+    'core.middleware.DisableCSRFOnRegistration',  # Our custom middleware to disable CSRF for specific paths
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

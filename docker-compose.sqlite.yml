@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Django Backend with SQLite
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.sqlite
+    container_name: spotter_backend
+    restart: unless-stopped
+    environment:
+      DEBUG: 0
+      DJANGO_SETTINGS_MODULE: config.settings
+      ALLOWED_HOSTS: backend,localhost,127.0.0.1,0.0.0.0,34.180.15.16,exponentialpotential.space,www.exponentialpotential.space
+      USE_SQLITE: 'True'
+    volumes:
+      - ./backend/db.sqlite3:/app/db.sqlite3
+      - ./backend/media:/app/media
+      - ./backend/staticfiles:/app/staticfiles
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - spotter_network
+
+  # Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: spotter_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/build:/usr/share/nginx/html
+      - ./backend/staticfiles:/usr/share/nginx/static
+      - ./backend/media:/usr/share/nginx/media
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - backend
+    networks:
+      - spotter_network
+
+networks:
+  spotter_network:
+    driver: bridge
+
+volumes:
+  staticfiles:
+  media:
