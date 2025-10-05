@@ -104,9 +104,19 @@ venv/
 # Pyre type checker
 .pyre/
 
-# Project specific
-*.log
-.DS_Store
+# SSL Certificates and Private Keys (SECURITY RISK!)
+*.pem
+*.key
+*.crt
+nginx/ssl/
+ssl/
 
+# Domain Validation Files (Environment Specific)
+.well-known/
+06B6C6B2E77600A044EF7265E0A6B390.txt
+068BC6B2E77600A044EF265E0A68390.txt
 
-backend/static
+# SSL Certificates and Keys
+certs.pem
+*.p12
+*.pfx
