@@ -38,8 +38,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
+    "http://exponentialpotential.space",
+    "https://exponentialpotential.space",
+    "http://34.180.15.16",
+    "https://34.180.15.16",
 ]
 
+# Allow credentials for cross-origin requests (needed for cookies/tokens)
 CORS_ALLOW_CREDENTIALS = True
 
 # For development, you might want to allow all origins (not recommended for production)
@@ -66,6 +71,8 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    "access-control-allow-origin",
+    "access-control-allow-credentials",
 ]
 
 # Application definition
@@ -251,6 +258,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
     ],
     # Disable CSRF for API endpoints (important for CORS)
     'DEFAULT_VERSIONING_CLASS': None,
