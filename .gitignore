@@ -120,3 +120,4 @@ ssl/
 certs.pem
 *.p12
 *.pfx
+backend/static
