@@ -110,6 +110,7 @@ class CreateUserView(generics.CreateAPIView):
 class LoginView(APIView):
     """Login user and return JWT tokens."""
     permission_classes = [permissions.AllowAny]
+    parser_classes = [JSONParser]
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):

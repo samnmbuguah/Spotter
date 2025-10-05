@@ -1,18 +1,18 @@
-import axios, { InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-// API base URL - adjust based on your Django server
+// API base URL - use relative path for proper nginx proxying
 const API_BASE_URL = '/api/v1';
 
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
   },
   timeout: 10000, // 10 seconds
+  withCredentials: false, // Don't send cookies by default for API calls
 });
 
-// Request interceptor to add auth token
+  // Request interceptor to add auth token and proper headers
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('access_token');
@@ -20,9 +20,10 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
-  (error) => {
+  (error: any) => {
     return Promise.reject(error);
   }
 );
@@ -30,7 +31,7 @@ api.interceptors.request.use(
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  async (error: any) => {
     if (error.response?.status === 401) {
       // Token expired, try to refresh
       const refreshToken = localStorage.getItem('refresh_token');
