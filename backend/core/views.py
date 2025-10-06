@@ -100,25 +100,18 @@ class CreateUserView(APIView):
         # Bypass CSRF protection for this view
         setattr(request, '_dont_enforce_csrf_checks', True)
         request.csrf_processing_done = True  # Tell Django CSRF middleware to skip this request
-        logger.info(f"Dispatching registration request. CSRF checks should be disabled.")
-        logger.info(f"Request headers: {dict(request.headers)}")
         return super().dispatch(request, *args, **kwargs)
     
     def get_serializer(self, *args, **kwargs):
         return UserSerializer(*args, **kwargs)
         
     def post(self, request, *args, **kwargs):
-        logger.info(f"Registration request data (raw): {request.body}")
-        logger.info(f"Registration request data (parsed): {request.data}")
-        logger.info(f"Request content type: {request.content_type}")
-        
         # Handle JSON parsing manually to ensure we get proper error messages
         if request.content_type == 'application/json':
             try:
                 if not request.body:
                     raise ValueError("Empty request body")
                 data = json.loads(request.body)
-                logger.info(f"Parsed JSON data: {data}")
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error: {str(e)}")
                 return JsonResponse(
@@ -138,9 +131,7 @@ class CreateUserView(APIView):
             
         try:
             # Create a serializer instance with the data
-            logger.info(f"Creating user with data: {data}")
             serializer = UserSerializer(data=data)
-            logger.info(f"Serializer created: {serializer}")
             
             # Explicitly validate the data
             if not serializer.is_valid():
@@ -155,9 +146,7 @@ class CreateUserView(APIView):
                     json_dumps_params={'indent': 2}
                 )
                 
-            logger.info("Data is valid, creating user...")
             user = serializer.save()
-            logger.info(f"User created successfully: {user.email}")
             
             # Get the serialized user data
             user_data = UserSerializer(user).data
