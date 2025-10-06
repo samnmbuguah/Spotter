@@ -64,6 +64,128 @@ A comprehensive Hours of Service (HOS) compliance management system for truck dr
    - Frontend: http://localhost:80
    - Backend API: http://localhost:8000/api
 
+## 👤 Getting Started Guide
+
+### 1. Access the Application
+
+Open your browser and navigate to **http://localhost:80** (or your deployed domain).
+
+### 2. Login with Test Credentials
+
+**Test Driver Account:**
+- **Email:** `testdriver@example.com`
+- **Password:** `testpass123`
+
+**Admin Account:**
+- **Email:** `admin`
+- **Password:** `admin`
+
+### 3. Explore the Dashboard
+
+After logging in, you'll see:
+- **Current Trip Status** - View active trips and HOS compliance
+- **Available Hours** - Check remaining driving time
+- **Recent Activity** - See recent log entries and trips
+- **Navigation Menu** - Access different sections of the app
+
+### 4. Key Features to Try
+
+#### Trip Management
+1. **View Current Trip** - See your active trip details
+2. **Start/Stop Trips** - Manage trip lifecycle
+3. **View Trip History** - Browse completed trips
+
+#### HOS Compliance
+1. **Check Status** - View available driving hours
+2. **Log Activities** - Record duty status changes
+3. **View Logs** - See detailed activity history
+
+#### Location Services
+1. **Search Locations** - Find truck stops, fuel stations, etc.
+2. **View on Map** - See locations on interactive map
+3. **Get Directions** - Plan routes between locations
+
+#### Reports & PDFs
+1. **Generate Daily Logs** - Create official HOS reports
+2. **View Route Maps** - See GPS-tracked routes
+3. **Export Data** - Download trip and compliance reports
+
+### 5. Mobile Usage
+
+The app is fully responsive and works great on mobile devices:
+- **Touch-friendly interface** for logging activities on the go
+- **GPS integration** for automatic location tracking
+- **Offline support** for areas with poor connectivity
+
+### 6. Demo Data
+
+The application includes sample data for testing:
+- **Sample Locations** - Major truck stops and cities
+- **Sample Trips** - Pre-configured routes
+- **Sample Log Entries** - Example duty status records
+- **GPS Coordinates** - Realistic location data for testing maps
+
+### 7. Troubleshooting
+
+#### Common Issues
+
+**Google Maps not loading:**
+- Ensure `GOOGLE_MAPS_API_KEY` is set in environment variables
+- Check browser console for API errors
+
+**PDF generation fails:**
+- Verify all required Python packages are installed
+- Check file permissions for PDF output directory
+
+**Login issues:**
+- Clear browser cookies and cache
+- Ensure backend server is running on port 8000
+
+#### Getting Help
+
+- Check browser developer console for errors
+- Review backend logs in Docker containers
+- Ensure all environment variables are properly configured
+
+## 🔑 Test Accounts & Sample Data
+
+### Driver Accounts
+- **Email:** `testdriver@example.com`
+- **Password:** `testpass123`
+- **Role:** Truck driver with sample trips and logs
+
+### Admin Accounts
+- **Username:** `admin`
+- **Password:** `admin`
+- **Role:** System administrator
+
+### Sample Locations Included
+- New York, NY
+- Chicago, IL
+- Los Angeles, CA
+- Dallas, TX
+- Major truck stops and rest areas
+
+### Sample Trip Data
+- Multi-city delivery routes
+- Various trip distances and durations
+- Realistic HOS scenarios for testing
+
+## 📱 Using the Mobile App
+
+### Key Mobile Features
+- **One-touch duty status logging**
+- **GPS location tracking**
+- **Offline log entry support**
+- **Push notifications for HOS alerts**
+
+### Mobile Navigation
+- **Dashboard** - Overview of current status
+- **Trips** - Active and completed trips
+- **Logs** - Duty status history
+- **Locations** - Find nearby facilities
+- **Reports** - Generate compliance reports
+
 ### Local Development Setup
 
 #### Backend Setup
