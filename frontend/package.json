@@ -35,9 +35,9 @@
     "zustand-slices": "^0.4.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "dev": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "react-app-rewired start",
+    "dev": "react-app-rewired start",
+    "build": "react-app-rewired build",
     "serve": "react-scripts build && npx serve -s build -l 3000",
     "test": "jest",
     "eject": "react-scripts eject"
@@ -71,10 +71,12 @@
     "concurrently": "^9.2.1",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "react-app-rewired": "^2.2.1",
     "serve": "^14.2.5",
     "source-map": "^0.7.6",
     "source-map-explorer": "^2.5.3",
     "ts-jest": "^29.4.4",
+    "util": "^0.12.5",
     "wait-on": "^9.0.1",
     "webpack-bundle-analyzer": "^4.10.2"
   }
