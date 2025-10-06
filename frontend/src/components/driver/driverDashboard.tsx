@@ -26,6 +26,8 @@ const DriverDashboard: React.FC = () => {
   const [existingEntryId, setExistingEntryId] = useState<number | null>(null);
   const [showTimeEditDialog, setShowTimeEditDialog] = useState<boolean>(false);
   const [editedTime, setEditedTime] = useState<string>(new Date().toTimeString().substring(0, 5));
+  const [pickupDropoffTimer, setPickupDropoffTimer] = useState<NodeJS.Timeout | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
   
   // Removed duplicate form state as it's managed by DutyStatusDialog
 
@@ -62,41 +64,6 @@ const DriverDashboard: React.FC = () => {
       setLoading(true);
       const trip = await tripService.getCurrentTrip();
       setCurrentTrip(trip || null);
-    } catch (error) {
-      console.error('Error loading current trip:', error);
-      addToast({
-        title: 'Error',
-        description: 'Failed to load current trip',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  // Initialize - Load data when user changes
-  useEffect(() => {
-    if (user) {
-      loadCurrentDutyStatus();
-      loadCurrentTrip();
-    }
-  }, [user]); // Only depend on user, not the functions
-
-  // Start/stop location tracking based on duty status
-  useEffect(() => {
-    if (!dutyStatus) return;
-    
-    if (dutyStatus.status === 'driving') {
-      startTracking();
-    } else {
-      stopTracking();
-    }
-    
-    return () => {
-      stopTracking();
-    };
-  }, [dutyStatus, startTracking, stopTracking]);
-  
   // Handle duty status change
   const handleDutyStatusChange = useCallback(async (status: DutyStatus) => {
     setLoading(true);
@@ -168,6 +135,11 @@ const DriverDashboard: React.FC = () => {
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
 
+      // Start pickup/dropoff timer if this is a pickup/dropoff activity
+      if (pendingDutyStatus.status === 'on_duty_not_driving' && formData.isPickupDropoff) {
+        startPickupDropoffTimer();
+      }
+
       addToast({
         title: 'Status Updated',
         description: `You are now ${pendingDutyStatus.status.replace(/_/g, ' ')}`,
@@ -215,6 +187,96 @@ const DriverDashboard: React.FC = () => {
     }
   }, [dutyStatus.status]);
 
+  // Cleanup timer on unmount or status change
+  useEffect(() => {
+    return () => {
+      if (pickupDropoffTimer) {
+        clearInterval(pickupDropoffTimer);
+      }
+    };
+  }, [pickupDropoffTimer]);
+
+  // Start pickup/dropoff timer when entering on_duty_not_driving with pickup/dropoff flag
+  useEffect(() => {
+    if (dutyStatus.status === 'on_duty_not_driving' && timeRemaining > 0) {
+      startPickupDropoffTimer();
+    }
+  }, [dutyStatus.status, timeRemaining]);
+
+  // Start pickup/dropoff timer
+  const startPickupDropoffTimer = useCallback(() => {
+    // Clear any existing timer
+    if (pickupDropoffTimer) {
+      clearInterval(pickupDropoffTimer);
+    }
+
+    // Set initial time remaining (1 hour = 3600000ms)
+    setTimeRemaining(3600000);
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1000) {
+          // Timer expired, auto-switch to driving
+          clearInterval(timer);
+          setPickupDropoffTimer(null);
+          handleAutoSwitchToDriving();
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    setPickupDropoffTimer(timer);
+  }, [pickupDropoffTimer]);
+
+  // Auto-switch back to driving after pickup/dropoff timer expires
+  const handleAutoSwitchToDriving = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Get today's log entries to find existing entry to end
+      const todaysEntries = await logService.getLogEntries();
+      const today = new Date().toISOString().split('T')[0];
+      const existingEntry = todaysEntries
+        .filter(entry => entry.date === today)
+        .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())[0];
+
+      // End the current on_duty_not_driving entry
+      if (existingEntry) {
+        await logService.updateLogEntry(existingEntry.id, {
+          end_time: new Date().toTimeString().substring(0, 8),
+        });
+      }
+
+      // Create new driving entry
+      await logService.createLogEntry({
+        driver: user?.id,
+        duty_status: 'driving',
+        start_time: new Date().toTimeString().substring(0, 8),
+      });
+
+      // Update local state
+      setDutyStatus({
+        status: 'driving',
+        startTime: new Date().toISOString(),
+      });
+
+      addToast({
+        title: 'Auto-Switched to Driving',
+        description: 'Pickup/dropoff activity completed. You are now in driving mode.',
+      });
+    } catch (error) {
+      console.error('Error auto-switching to driving:', error);
+      addToast({
+        title: 'Auto-Switch Failed',
+        description: 'Failed to auto-switch to driving mode',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, addToast]);
+
   // Render the component
   if (loading) {
     return <div className="p-4">Loading...</div>;
@@ -242,6 +304,11 @@ const DriverDashboard: React.FC = () => {
                 <span className="text-sm text-gray-500 ml-2">
                   (since {new Date(dutyStatus.startTime).toLocaleTimeString()})
                 </span>
+              )}
+              {timeRemaining > 0 && dutyStatus.status === 'on_duty_not_driving' && (
+                <div className="mt-2 text-sm text-orange-600 dark:text-orange-400">
+                  ⏰ Pickup/Dropoff Timer: {Math.floor(timeRemaining / 60000)}:{String(Math.floor((timeRemaining % 60000) / 1000)).padStart(2, '0')} remaining
+                </div>
               )}
             </div>
             <button

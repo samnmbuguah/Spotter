@@ -27,10 +27,21 @@ if [ ! -d "$LOCAL_BACKEND_PATH" ]; then
     exit 1
 fi
 
-# Check if frontend build exists
+# Always rebuild frontend for latest changes
+echo -e "${YELLOW}🔨 Building frontend for latest changes...${NC}"
+cd "frontend" && npm run build
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Frontend build failed!${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ Frontend build completed successfully!${NC}"
+
+# Go back to parent directory for deployment
+cd ..
+
+# Verify frontend build exists
 if [ ! -d "$LOCAL_FRONTEND_BUILD_PATH" ]; then
-    echo -e "${RED}❌ Frontend build directory '$LOCAL_FRONTEND_BUILD_PATH' not found!${NC}"
-    echo -e "${YELLOW}💡 Run 'npm run build' in your frontend directory first${NC}"
+    echo -e "${RED}❌ Frontend build directory '$LOCAL_FRONTEND_BUILD_PATH' not found after build!${NC}"
     exit 1
 fi
 

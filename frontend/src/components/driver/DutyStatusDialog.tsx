@@ -28,6 +28,7 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
     trailerInfo: '',
     odometerStart: '',
     odometerEnd: '',
+    isPickupDropoff: false,
   });
 
   useEffect(() => {
@@ -164,6 +165,26 @@ export const DutyStatusDialog: React.FC<DutyStatusDialogProps> = ({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm"
             />
           </div>
+
+          {/* Pickup/Dropoff checkbox for on_duty_not_driving status */}
+          {status === 'on_duty_not_driving' && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isPickupDropoff"
+                name="isPickupDropoff"
+                checked={formData.isPickupDropoff || false}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  isPickupDropoff: e.target.checked
+                }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isPickupDropoff" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                This is a pickup or dropoff activity (1-hour timer will auto-switch back to driving)
+              </label>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <button

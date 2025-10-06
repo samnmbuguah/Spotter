@@ -38,6 +38,7 @@ export interface DutyStatusFormData {
   trailerInfo: string;
   odometerStart: string;
   odometerEnd: string;
+  isPickupDropoff?: boolean;
 }
 
 export const DUTY_STATUS_OPTIONS = [
