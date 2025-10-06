@@ -142,7 +142,15 @@ const DriverDashboard: React.FC = () => {
       }
 
       // Always create a new entry for the new status
-      await logService.createLogEntry(submissionData);
+      // Add a small delay to ensure unique start_time
+      const newStartTime = new Date();
+      newStartTime.setSeconds(newStartTime.getSeconds() + 1); // Add 1 second to avoid constraint violation
+      const finalSubmissionData = {
+        ...submissionData,
+        start_time: newStartTime.toTimeString().substring(0, 8),
+      };
+
+      await logService.createLogEntry(finalSubmissionData);
 
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
@@ -261,10 +269,13 @@ const DriverDashboard: React.FC = () => {
       }
 
       // Create new driving entry
+      // Add a small delay to ensure unique start_time
+      const drivingStartTime = new Date();
+      drivingStartTime.setSeconds(drivingStartTime.getSeconds() + 1);
       await logService.createLogEntry({
         driver: user?.id,
         duty_status: 'driving',
-        start_time: new Date().toTimeString().substring(0, 8),
+        start_time: drivingStartTime.toTimeString().substring(0, 8),
       });
 
       // Update local state
