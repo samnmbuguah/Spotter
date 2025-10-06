@@ -25,7 +25,7 @@ export const DutyStatusControls: React.FC<DutyStatusControlsProps> = ({
               : 'bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
           }`}
         >
-          {currentStatus === option.value ? 'Current Status' : option.label}
+          {currentStatus === option.value ? `Current Status: ${option.label}` : option.label}
         </button>
       ))}
     </div>
