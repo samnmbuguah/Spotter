@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User } from '../types';
+import api from '../services/api';
 
 interface UserPreferences {
   dutyStatusResetTime: string; // HH:MM format, e.g., "06:00"
@@ -12,9 +13,6 @@ interface ExtendedUser extends User {
   preferences?: UserPreferences;
 }
 
-// API base URL - using relative URL for Vercel deployment
-const API_BASE_URL = '/api/v1';
-
 interface AuthState {
   user: ExtendedUser | null;
   token: string | null;
@@ -25,7 +23,7 @@ interface AuthState {
   ensureCsrfToken: () => Promise<string | null>;
   login: (email: string, password: string) => Promise<ExtendedUser>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  checkAuth: () => Promise<boolean>;
   updateUserPreferences: (preferences: Partial<UserPreferences>) => Promise<void>;
 }
 
@@ -60,16 +58,9 @@ const useAuthStore = create<AuthStore>()(
         
         // If not in cookies, fetch a new one
         try {
-          const response = await fetch(`${API_BASE_URL}/auth/csrf/`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Accept': 'application/json',
-            },
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
+          const response = await api.get('/auth/csrf/');
+          if (response.status >= 200 && response.status < 300) {
+            const data = response.data;
             return data.csrfToken || null;
           }
         } catch (error) {
@@ -106,22 +97,28 @@ const useAuthStore = create<AuthStore>()(
           
           // Include credentials (cookies) with the request
           const credentials: RequestCredentials = 'include';
-          
 
           // Call the API login endpoint
-          const response = await fetch(`${API_BASE_URL}/auth/login/`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ email, password }),
-            credentials,
-          });
+          const response = await api.post(
+            '/auth/login/', 
+            { email, password },
+            {
+              headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+              },
+              withCredentials: true,
+              xsrfCookieName: 'csrftoken',
+              xsrfHeaderName: 'X-CSRFToken',
+            }
+          );
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+          if (response.status >= 400) {
+            const errorData = response.data || {};
             throw new Error(errorData.detail || 'Login failed');
           }
 
-          const data = await response.json();
+          const data = response.data;
 
           if (!data.access) {
             throw new Error('No access token received');
@@ -134,19 +131,13 @@ const useAuthStore = create<AuthStore>()(
           }
 
           // Get user profile
-          const userResponse = await fetch(`${API_BASE_URL}/auth/profile/`, {
-            headers: {
-              'Authorization': `Bearer ${data.access}`,
-              'Accept': 'application/json',
-            },
-            credentials: 'include',
-          });
+          const userResponse = await api.get('/auth/profile/');
 
-          if (!userResponse.ok) {
+          if (userResponse.status >= 400) {
             throw new Error('Failed to fetch user profile');
           }
 
-          const user = await userResponse.json();
+          const user = userResponse.data;
 
           set({
             user,
@@ -177,14 +168,8 @@ const useAuthStore = create<AuthStore>()(
         try {
           // Try to invalidate the refresh token on the server
           if (refreshToken) {
-            await fetch(`${API_BASE_URL}/auth/logout/`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({ refresh: refreshToken }),
-              credentials: 'include',
+            await api.post('/auth/logout/', {
+              refresh: refreshToken,
             });
           }
         } catch (error) {
@@ -211,71 +196,13 @@ const useAuthStore = create<AuthStore>()(
             set({ isAuthenticated: false, isLoading: false });
             return false;
           }
-          
-          // Ensure we have a valid CSRF token
-          const csrfToken = await get().ensureCsrfToken();
-          
-          if (!csrfToken) {
-            console.error('CSRF token is required but not available');
-            throw new Error('Unable to establish secure connection. Please refresh the page and try again.');
-          }
-          
-          // Prepare headers
-          const headers: HeadersInit = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrfToken,
-          };
-          
-          // Verify the token with the backend
-          let response = await fetch(`${API_BASE_URL}/auth/verify/`, {
-            method: 'POST',
-            headers,
-            credentials: 'include',
-            body: JSON.stringify({ token }),
-          });
 
-          if (!response.ok) {
-            // If we get a 403, it might be due to CSRF, try to get a new token and retry once
-            if (response.status === 403) {
-              // Clear the existing CSRF token and get a new one
-              document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-              const newCsrfToken = await get().ensureCsrfToken();
-              
-              if (newCsrfToken) {
-                headers['X-CSRFToken'] = newCsrfToken;
-                const retryResponse = await fetch(`${API_BASE_URL}/auth/verify/`, {
-                  method: 'POST',
-                  headers,
-                  credentials: 'include',
-                  body: JSON.stringify({ token }),
-                });
-                
-                if (!retryResponse.ok) {
-                  throw new Error('Token verification failed after CSRF retry');
-                }
-                response = retryResponse;
-              } else {
-                throw new Error('Failed to get new CSRF token');
-              }
-            } else {
-              throw new Error('Token verification failed');
-            }
-          }
-          
-          // If we get here, token verification was successful
-          const userResponse = await fetch(`${API_BASE_URL}/auth/profile/`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/json',
-            },
-            credentials: 'include',
-          });
+          // Use the check-auth endpoint instead of token verify
+          // This endpoint uses JWT authentication which is more reliable
+          const response = await api.get('/auth/check-auth/');
 
-          if (userResponse.ok) {
-            const user = await userResponse.json();
+          if (response.status >= 200 && response.status < 300) {
+            const user = response.data;
             set({
               user,
               token,
@@ -283,64 +210,38 @@ const useAuthStore = create<AuthStore>()(
               isLoading: false
             });
             return true;
-          }
-
-          if (response.ok) {
-            const user = await response.json();
-            set({
-              user,
-              token,
-              isAuthenticated: true,
-              isLoading: false
-            });
-            return true;
-          } else {
-            // If token is invalid, try to refresh it
+          } else if (response.status === 401) {
+            // Token is invalid, try to refresh it
             const refreshToken = localStorage.getItem('refresh_token');
             if (refreshToken) {
               try {
-                const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                  },
-                  body: JSON.stringify({ refresh: refreshToken }),
-                  credentials: 'include',
+                const refreshResponse = await api.post('/auth/token/refresh/', {
+                  refresh: refreshToken,
                 });
 
-                if (refreshResponse.ok) {
-                  const { access } = await refreshResponse.json();
+                if (refreshResponse.status >= 200 && refreshResponse.status < 300) {
+                  const { access } = refreshResponse.data;
                   localStorage.setItem('access_token', access);
 
-                  try {
-                    const profileResponse = await fetch(`${API_BASE_URL}/auth/profile/`, {
-                      headers: {
-                        'Authorization': `Bearer ${access}`,
-                        'Accept': 'application/json',
-                      },
-                      credentials: 'include',
-                    });
+                  // Retry the auth check with new token
+                  const retryResponse = await api.get('/auth/check-auth/');
 
-                    if (profileResponse.ok) {
-                      const user = await profileResponse.json();
-                      set({
-                        user,
-                        token: access,
-                        isAuthenticated: true,
-                        isLoading: false
-                      });
-                      return true;
-                    }
-                  } catch (error) {
-                    console.error('Failed to fetch user data after token refresh:', error);
+                  if (retryResponse.status >= 200 && retryResponse.status < 300) {
+                    const user = retryResponse.data;
+                    set({
+                      user,
+                      token: access,
+                      isAuthenticated: true,
+                      isLoading: false
+                    });
+                    return true;
                   }
                 }
               } catch (error) {
                 console.error('Failed to refresh token:', error);
               }
             }
-            
+
             // If we get here, either refresh failed or no refresh token
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
@@ -362,6 +263,7 @@ const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             isLoading: false
           });
+          return false;
         }
       },
       setLoading: (isLoading: boolean) => set({ isLoading }),
@@ -377,23 +279,14 @@ const useAuthStore = create<AuthStore>()(
             throw new Error('No authentication token found');
           }
 
-          const response = await fetch(`${API_BASE_URL}/auth/preferences/`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify(preferences),
-            credentials: 'include',
-          });
+          const response = await api.patch('/auth/preferences/', preferences);
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+          if (response.status >= 400) {
+            const errorData = response.data || {};
             throw new Error(errorData.detail || 'Failed to update preferences');
           }
 
-          const updatedPreferences = await response.json();
+          const updatedPreferences = response.data;
 
           // Update local user state with new preferences
           set({
