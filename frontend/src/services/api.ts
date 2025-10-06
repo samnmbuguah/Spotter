@@ -145,10 +145,11 @@ export const authService = {
     return response.data;
   },
 
-  async updateDriverProfile(profileData: any) {
-    const response = await api.patch('/auth/driver-profile/', profileData);
-    return response.data;
-  },
+  // TODO: Implement driver profile endpoint in backend
+  // async updateDriverProfile(profileData: any) {
+  //   const response = await api.patch('/auth/driver-profile/', profileData);
+  //   return response.data;
+  // },
 
   logout() {
     localStorage.removeItem('access_token');
