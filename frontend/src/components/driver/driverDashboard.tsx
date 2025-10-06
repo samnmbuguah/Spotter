@@ -153,12 +153,17 @@ const DriverDashboard: React.FC = () => {
         start_time: new Date().toTimeString().substring(0, 8), // Add current time as start_time
       };
 
-      // If editing existing entry, use update; otherwise create new
+      // If editing existing entry, end it first, then create new entry
       if (passedExistingEntryId) {
-        await logService.updateLogEntry(passedExistingEntryId, submissionData);
-      } else {
-        await logService.createLogEntry(submissionData);
+        // End the existing entry by setting its end_time
+        await logService.updateLogEntry(passedExistingEntryId, {
+          ...submissionData,
+          end_time: new Date().toTimeString().substring(0, 8), // Set end time for the old entry
+        });
       }
+
+      // Always create a new entry for the new status
+      await logService.createLogEntry(submissionData);
 
       setDutyStatus(pendingDutyStatus);
       setShowDutyDialog(false);
@@ -177,7 +182,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [pendingDutyStatus]);
+  }, [pendingDutyStatus, user?.id, addToast]);
   
   // Handle time update
   const handleTimeUpdate = useCallback(async (newTime: string) => {
