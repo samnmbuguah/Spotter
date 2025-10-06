@@ -74,7 +74,7 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
           {value ? formatTime(value) : <span>Pick a time</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-4">
+      <PopoverContent className="w-auto p-4 bg-white dark:bg-gray-800">
         <div className="flex items-center space-x-2">
           <div className="flex flex-col items-center">
             <div className="text-sm font-medium mb-1">Hours</div>
