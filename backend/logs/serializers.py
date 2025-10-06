@@ -101,16 +101,16 @@ class ViolationSerializer(serializers.ModelSerializer):
 
 class LogEntryCreateSerializer(serializers.ModelSerializer):
     """Specialized serializer for creating log entries"""
-    # Removed date field - will use model's default
+    date = DateField(read_only=True)  # Include date field for proper serialization
 
     class Meta:
         model = LogEntry
         fields = [
-            'id', 'start_time', 'end_time', 'duty_status',
+            'id', 'date', 'start_time', 'end_time', 'duty_status',
             'location', 'notes', 'latitude', 'longitude', 'total_hours',
             'vehicle_info', 'trailer_info', 'odometer_start', 'odometer_end'
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'date']  # Make date read-only since it uses model's default
 
     def validate(self, data):
         """Validate that end_time is after start_time"""

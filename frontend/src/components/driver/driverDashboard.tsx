@@ -114,12 +114,12 @@ const DriverDashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // Convert LocationData to string format for API
       const locationString = formData.location ? formData.location.address : '';
 
       // Prepare the data for API submission
       const submissionData = {
         driver: user?.id, // Add the current user's ID
+        date: new Date().toISOString().split('T')[0], // Add current date
         duty_status: pendingDutyStatus.status, // Use duty_status instead of status
         location: locationString,
         latitude: formData.location?.lat,
@@ -274,6 +274,7 @@ const DriverDashboard: React.FC = () => {
       drivingStartTime.setSeconds(drivingStartTime.getSeconds() + 1);
       await logService.createLogEntry({
         driver: user?.id,
+        date: new Date().toISOString().split('T')[0], // Add current date
         duty_status: 'driving',
         start_time: drivingStartTime.toTimeString().substring(0, 8),
       });
