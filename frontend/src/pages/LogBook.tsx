@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useToast } from '../components/ui/use-toast';
 import { logService } from '../services/api';
-import { Calendar, MapPin, FileText, Download, CheckCircle } from 'lucide-react';
+import LogSheetVisualization from '../components/LogSheetVisualization';
+import { FileText, CheckCircle, Calendar, MapPin } from 'lucide-react';
 
 interface LogEntry {
   id: number;
@@ -132,6 +133,33 @@ const LogBook: React.FC = () => {
         title: 'Daily Log Generated',
         description: 'Your daily log has been generated successfully.',
       });
+
+      // Automatically export PDF after generating the log
+      try {
+        const pdfBlob = await logService.downloadDailyLogPDF(selectedDate);
+
+        // Create download link
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `hos-log-${selectedDate}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        addToast({
+          title: 'PDF Downloaded',
+          description: 'Your driver\'s log has been downloaded automatically.',
+        });
+      } catch (pdfError) {
+        console.error('Error downloading PDF:', pdfError);
+        addToast({
+          title: 'Log Generated',
+          description: 'Daily log generated successfully. PDF download failed - please use Export PDF button.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       console.error('Error generating daily log:', error);
       addToast({
@@ -158,38 +186,6 @@ const LogBook: React.FC = () => {
       addToast({
         title: 'Error',
         description: 'Failed to certify log',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const exportToPDF = async () => {
-    setLoading(true);
-    try {
-      // Call the backend API to generate proper PDF
-      const pdfBlob = await logService.downloadDailyLogPDF();
-
-      // Create download link
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `hos-log-latest.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      addToast({
-        title: 'PDF Exported',
-        description: 'Your driver\'s log has been exported successfully.',
-      });
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      addToast({
-        title: 'Error',
-        description: 'Failed to export PDF. Please generate a daily log first.',
         variant: 'destructive',
       });
     } finally {
@@ -248,190 +244,134 @@ Generated on: ${new Date().toLocaleString()}
                 className="px-4 py-2 bg-white hover:bg-gray-700 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
               >
                 <FileText className="w-4 h-4" />
-                <span>Generate Log</span>
-              </button>
-              <button
-                onClick={exportToPDF}
-                disabled={loading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2 font-medium shadow-sm hover:shadow-md"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export PDF</span>
+                <span>{loading ? 'Generating...' : 'Generate & Download'}</span>
               </button>
             </div>
           </div>
 
-      {/* Daily Summary */}
-      {todaysDailyLog && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Daily Summary - {new Date(selectedDate).toLocaleDateString()}
-            </h2>
-            <div className="flex items-center space-x-2">
-              {todaysDailyLog.is_certified ? (
-                <span className="flex items-center px-3 py-1 text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Certified
-                </span>
+          {/* Daily Summary */}
+          {todaysDailyLog && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Daily Summary - {new Date(selectedDate).toLocaleDateString()}
+                </h2>
+                <div className="flex items-center space-x-2">
+                  {todaysDailyLog.is_certified ? (
+                    <span className="flex items-center px-3 py-1 text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Certified
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => certifyLog(todaysDailyLog.id)}
+                      disabled={loading}
+                      className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors"
+                    >
+                      Certify Log
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {formatDuration(todaysDailyLog.total_off_duty_hours || 0)}
+                  </div>
+                  <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Off Duty</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-shadow">
+                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                    {formatDuration(todaysDailyLog.total_sleeper_berth_hours || 0)}
+                  </div>
+                  <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Sleeper Berth</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
+                  <div className="text-2xl font-bold text-green-900 dark:text-green-100 mb-2">
+                    {formatDuration(todaysDailyLog.total_driving_hours || 0)}
+                  </div>
+                  <div className="text-sm font-medium text-green-700 dark:text-green-300">Driving</div>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-shadow">
+                  <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 mb-2">
+                    {formatDuration(todaysDailyLog.total_on_duty_hours || 0)}
+                  </div>
+                  <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">On Duty</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Log Entries */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Log Entries - {new Date(selectedDate).toLocaleDateString()}
+              </h2>
+            </div>
+
+            <div className="p-6">
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : todaysEntries.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">No log entries</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No log entries found for {new Date(selectedDate).toLocaleDateString()}.
+                  </p>
+                </div>
               ) : (
-                <button
-                  onClick={() => certifyLog(todaysDailyLog.id)}
-                  disabled={loading}
-                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors"
-                >
-                  Certify Log
-                </button>
+                <div className="space-y-4">
+                  {todaysEntries.map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-4 h-4 rounded-full ${DUTY_STATUS_COLORS[entry.duty_status]}`} />
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {DUTY_STATUS_LABELS[entry.duty_status]}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {formatTime(entry.start_time)}
+                              {entry.end_time && ` - ${formatTime(entry.end_time)}`}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                            {formatDuration(entry.current_duration || 0)}
+                          </div>
+                          {entry.location && (
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              {entry.location}
+                            </div>
+                          )}
+                          {entry.notes && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              {entry.notes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Entry #{entry.id}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {formatDuration(todaysDailyLog.total_off_duty_hours || 0)}
-              </div>
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Off Duty</div>
-            </div>
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-shadow">
-              <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-2">
-                {formatDuration(todaysDailyLog.total_sleeper_berth_hours || 0)}
-              </div>
-              <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Sleeper Berth</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
-              <div className="text-2xl font-bold text-green-900 dark:text-green-100 mb-2">
-                {formatDuration(todaysDailyLog.total_driving_hours || 0)}
-              </div>
-              <div className="text-sm font-medium text-green-700 dark:text-green-300">Driving</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-shadow">
-              <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 mb-2">
-                {formatDuration(todaysDailyLog.total_on_duty_hours || 0)}
-              </div>
-              <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">On Duty</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Log Entries */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Log Entries - {new Date(selectedDate).toLocaleDateString()}
-          </h2>
-        </div>
-
-        <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-          ) : todaysEntries.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">No log entries</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No log entries found for {new Date(selectedDate).toLocaleDateString()}.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {todaysEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-4 h-4 rounded-full ${DUTY_STATUS_COLORS[entry.duty_status]}`} />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {DUTY_STATUS_LABELS[entry.duty_status]}
-                        </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {formatTime(entry.start_time)}
-                          {entry.end_time && ` - ${formatTime(entry.end_time)}`}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-                        {formatDuration(entry.current_duration || 0)}
-                      </div>
-                      {entry.location && (
-                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {entry.location}
-                        </div>
-                      )}
-                      {entry.notes && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {entry.notes}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Entry #{entry.id}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Log Sheet Visualization */}
+          {todaysEntries.length > 0 && (
+            <LogSheetVisualization entries={todaysEntries} date={selectedDate} />
           )}
-        </div>
-      </div>
-
-      {/* Log Grid View (Traditional Format) */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Log Grid - {new Date(selectedDate).toLocaleDateString()}
-          </h2>
-        </div>
-
-        <div className="p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 px-3 text-gray-900 dark:text-white">Time</th>
-                  <th className="text-left py-2 px-3 text-gray-900 dark:text-white">Duty Status</th>
-                  <th className="text-left py-2 px-3 text-gray-900 dark:text-white">Location</th>
-                  <th className="text-left py-2 px-3 text-gray-900 dark:text-white">Hours</th>
-                  <th className="text-left py-2 px-3 text-gray-900 dark:text-white">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todaysEntries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="py-2 px-3 text-gray-900 dark:text-white">
-                      {formatTime(entry.start_time)}
-                      {entry.end_time && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          to {formatTime(entry.end_time)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-2 px-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${DUTY_STATUS_COLORS[entry.duty_status]}`}>
-                        {DUTY_STATUS_LABELS[entry.duty_status]}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-gray-600 dark:text-gray-300">
-                      {entry.location || '-'}
-                    </td>
-                    <td className="py-2 px-3 text-gray-900 dark:text-white font-medium">
-                      {formatDuration(entry.current_duration || 0)}
-                    </td>
-                    <td className="py-2 px-3 text-gray-600 dark:text-gray-300">
-                      {entry.notes || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        </div>
         </div>
       </div>
     </div>

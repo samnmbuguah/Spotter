@@ -239,6 +239,8 @@ const TripPlanner: React.FC = () => {
               origin={selectedLocations.origin || null}
               destination={selectedLocations.destination || null}
               waypoints={[]}
+              restStops={[]}
+              fuelingStops={[]}
               height="100%"
             />
           </div>

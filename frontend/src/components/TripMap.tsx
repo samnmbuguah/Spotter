@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 // Define the Google Maps types we'll be using
 declare global {
@@ -20,6 +20,8 @@ interface TripMapProps {
   origin: LocationData | null;
   destination: LocationData | null;
   waypoints?: LocationData[];
+  restStops?: LocationData[];
+  fuelingStops?: LocationData[];
   height?: string;
   zoom?: number;
 }
@@ -86,6 +88,8 @@ const TripMap: React.FC<TripMapProps> = ({
   origin,
   destination,
   waypoints = [],
+  restStops = [],
+  fuelingStops = [],
   height = '400px',
   zoom = 5,
 }) => {
@@ -93,6 +97,116 @@ const TripMap: React.FC<TripMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const directionsRenderer = useRef<any>(null);
+  const markers = useRef<any[]>([]);
+
+  // Function to add markers to map
+  const addMarkers = useCallback(() => {
+    if (!mapInstance.current) return;
+
+    // Clear existing markers
+    markers.current.forEach(marker => marker.setMap(null));
+    markers.current = [];
+
+    // Add origin marker
+    if (origin) {
+      const originMarker = new window.google.maps.Marker({
+        position: { lat: origin.lat, lng: origin.lng },
+        map: mapInstance.current,
+        title: `Origin: ${origin.address}`,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+            '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+            '<circle cx="10" cy="10" r="8" fill="#22c55e" stroke="#ffffff" stroke-width="2"/>' +
+            '<path d="M10 6v8M6 10h8" stroke="#ffffff" stroke-width="2"/>' +
+            '</svg>'
+          ),
+          scaledSize: new window.google.maps.Size(30, 30),
+          anchor: new window.google.maps.Point(15, 15),
+        },
+      });
+      markers.current.push(originMarker);
+    }
+
+    // Add destination marker
+    if (destination) {
+      const destinationMarker = new window.google.maps.Marker({
+        position: { lat: destination.lat, lng: destination.lng },
+        map: mapInstance.current,
+        title: `Destination: ${destination.address}`,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+            '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="3" y="3" width="14" height="14" rx="2" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>' +
+            '<path d="M10 6v8M6 10h8" stroke="#ffffff" stroke-width="2"/>' +
+            '</svg>'
+          ),
+          scaledSize: new window.google.maps.Size(30, 30),
+          anchor: new window.google.maps.Point(15, 15),
+        },
+      });
+      markers.current.push(destinationMarker);
+    }
+
+    // Add waypoint markers
+    waypoints.forEach((waypoint, index) => {
+      const waypointMarker = new window.google.maps.Marker({
+        position: { lat: waypoint.lat, lng: waypoint.lng },
+        map: mapInstance.current,
+        title: `Stop ${index + 1}: ${waypoint.address}`,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+            '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+            '<circle cx="10" cy="10" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>' +
+            '<text x="10" y="14" text-anchor="middle" fill="#ffffff" font-size="8" font-family="Arial">' + (index + 1) + '</text>' +
+            '</svg>'
+          ),
+          scaledSize: new window.google.maps.Size(25, 25),
+          anchor: new window.google.maps.Point(12, 12),
+        },
+      });
+      markers.current.push(waypointMarker);
+    });
+
+    // Add rest stop markers
+    restStops.forEach((restStop, index) => {
+      const restStopMarker = new window.google.maps.Marker({
+        position: { lat: restStop.lat, lng: restStop.lng },
+        map: mapInstance.current,
+        title: `Rest Stop: ${restStop.address}`,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+            '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+            '<circle cx="10" cy="10" r="8" fill="#3b82f6" stroke="#ffffff" stroke-width="2"/>' +
+            '<path d="M8 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"/>' +
+            '</svg>'
+          ),
+          scaledSize: new window.google.maps.Size(30, 30),
+          anchor: new window.google.maps.Point(15, 15),
+        },
+      });
+      markers.current.push(restStopMarker);
+    });
+
+    // Add fueling stop markers
+    fuelingStops.forEach((fuelingStop, index) => {
+      const fuelingStopMarker = new window.google.maps.Marker({
+        position: { lat: fuelingStop.lat, lng: fuelingStop.lng },
+        map: mapInstance.current,
+        title: `Fueling Stop: ${fuelingStop.address}`,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+            '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="4" y="4" width="12" height="12" rx="2" fill="#8b5cf6" stroke="#ffffff" stroke-width="2"/>' +
+            '<path d="M8 8h4v4h-4z" fill="#ffffff"/>' +
+            '</svg>'
+          ),
+          scaledSize: new window.google.maps.Size(30, 30),
+          anchor: new window.google.maps.Point(15, 15),
+        },
+      });
+      markers.current.push(fuelingStopMarker);
+    });
+  }, [origin, destination, waypoints, restStops, fuelingStops]);
 
   useEffect(() => {
     // Only initialize map in browser environment
@@ -140,7 +254,7 @@ const TripMap: React.FC<TripMapProps> = ({
       directionsRenderer.current = new window.google.maps.DirectionsRenderer({
         draggable: false,
         panel: null,
-        suppressMarkers: false,
+        suppressMarkers: true, // We use custom markers
         polylineOptions: {
           strokeColor: '#2563eb',
           strokeWeight: 4,
@@ -180,6 +294,7 @@ const TripMap: React.FC<TripMapProps> = ({
         });
 
         directionsRenderer.current.setDirections(results);
+        addMarkers();
 
         // Adjust map bounds to show the entire route
         const bounds = new window.google.maps.LatLngBounds();
@@ -194,7 +309,7 @@ const TripMap: React.FC<TripMapProps> = ({
     };
 
     updateRoute();
-  }, [origin, destination, waypoints]);
+  }, [origin, destination, waypoints, addMarkers]);
 
   // Clean up
   useEffect(() => {
@@ -202,6 +317,7 @@ const TripMap: React.FC<TripMapProps> = ({
       if (directionsRenderer.current) {
         directionsRenderer.current.setMap(null);
       }
+      markers.current.forEach(marker => marker.setMap(null));
     };
   }, []);
 
