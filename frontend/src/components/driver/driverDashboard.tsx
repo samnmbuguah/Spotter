@@ -59,11 +59,23 @@ const DriverDashboard: React.FC = () => {
   // Load current trip
   const loadCurrentTrip = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const trip = await tripService.getCurrentTrip();
       setCurrentTrip(trip || null);
+    } catch (error) {
+      console.error('Error loading current trip:', error);
+      addToast({
+        title: 'Error',
+        description: 'Failed to load current trip',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, addToast]);
+
   // Handle duty status change
   const handleDutyStatusChange = useCallback(async (status: DutyStatus) => {
     setLoading(true);
@@ -93,7 +105,7 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
   
   // Confirm duty status change
   const confirmDutyStatusChange = useCallback(async (formData: DutyStatusFormData, passedExistingEntryId?: number) => {
