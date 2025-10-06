@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 // API base URL - use relative path for proper nginx proxying
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? '/api/v1' : '/api/v1';
 
 // Function to get CSRF token from cookies
 function getCookie(name: string): string | null {
@@ -26,7 +26,7 @@ export const ensureCSRFToken = async (): Promise<string> => {
   if (csrfToken) return csrfToken;
   
   // If we don't have a token, fetch one from the server
-  const response = await axios.get('/api/auth/csrf/', {
+  const response = await axios.get('/api/v1/auth/csrf/', {
     withCredentials: true,
     baseURL: '/',
     headers: {
