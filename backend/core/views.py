@@ -202,6 +202,7 @@ class CreateUserView(APIView):
             )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     """Login user and return JWT tokens."""
     permission_classes = [permissions.AllowAny]
@@ -376,6 +377,13 @@ class CheckAuthView(APIView):
             driver_profile = {
                 'license_number': user.driver_profile.license_number,
             }
+        
+        return Response({
+            'id': user.id,
+            'email': user.email,
+            'name': user.name,
+            'driver_profile': driver_profile,
+        })
 class LogoutView(APIView):
     """Logout user and blacklist refresh token."""
     permission_classes = [permissions.IsAuthenticated]

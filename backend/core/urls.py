@@ -26,6 +26,7 @@ v1_patterns = [
     path('register/', csrf_exempt(views.CreateUserView.as_view()), name='register'),
     path('login/', views.LoginView.as_view(), name='login'),
     path('profile/', views.ManageUserView.as_view(), name='profile'),
+    path('check-auth/', views.CheckAuthView.as_view(), name='check-auth'),
     
     # JWT Token
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
