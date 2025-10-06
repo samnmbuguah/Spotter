@@ -23,12 +23,12 @@ class DateField(serializers.DateField):
 class LogEntrySerializer(serializers.ModelSerializer):
     """Serializer for LogEntry model"""
     current_duration = serializers.SerializerMethodField()
-    # Removed date field - will use model's default for new entries, keep existing for updates
+    date = DateField(read_only=True)
 
     class Meta:
         model = LogEntry
         fields = [
-            'id', 'driver', 'start_time', 'end_time', 'duty_status',
+            'id', 'driver', 'date', 'start_time', 'end_time', 'duty_status',
             'location', 'notes', 'latitude', 'longitude', 'total_hours', 'current_duration',
             'vehicle_info', 'trailer_info', 'odometer_start', 'odometer_end',
             'created_at', 'updated_at'
